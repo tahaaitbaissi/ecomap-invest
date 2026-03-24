@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Base de données PostGIS
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: ecomap-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ecomap
+      POSTGRES_USER: ecomap
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"   # exposé pour accès externe (dev)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ecomap-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - backend
+
+  # Ollama (LLM local)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ecomap-ollama
+    restart: unless-stopped
+    volumes:
+      - ollamadata:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - backend
+    command: serve
+
+  # Backend Spring Boot
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecomap-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecomap
+      SPRING_DATASOURCE_USERNAME: ecomap
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      OLLAMA_URL: http://ollama:11434
+      JWT_SECRET: ${JWT_SECRET:-ChangeMeInProductionAtLeast32Chars123!}
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+      - frontend
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecomap-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1   # interne
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+
+volumes:
+  pgdata:
+  redisdata:
+  ollamadata:
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge

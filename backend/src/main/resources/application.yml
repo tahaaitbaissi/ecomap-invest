@@ -1,0 +1,59 @@
+# ==========================================
+# 1. INFORMATIONS DU SERVEUR
+# ==========================================
+spring:
+  application:
+    name: ecomap-invest-backend
+
+  # ==========================================
+  # 2. BASE DE DONNÉES SPATIALE (PostgreSQL / PostGIS)
+  # ==========================================
+  datasource:
+    # On utilise les variables d'environnement injectées par Docker, avec des valeurs par défaut pour le lancement en local (hors Docker)
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecomap}
+    username: ${SPRING_DATASOURCE_USERNAME:ecomap}
+    password: ${SPRING_DATASOURCE_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    # Pour le développement : met à jour le schéma automatiquement. En prod, utiliser 'validate' ou Flyway/Liquibase
+    hibernate:
+      ddl-auto: update
+    show-sql: false # Passer à true pour voir les requêtes générées dans la console
+    properties:
+      hibernate:
+        format_sql: true
+        # Hibernate 7: l'ancien dialecte PostgisPG10Dialect n'existe plus
+        # (PostGIS fonctionne avec PostgreSQLDialect quand l'extension est active en base)
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # ==========================================
+  # 3. CACHE (Redis)
+  # ==========================================
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      # timeout: 2000
+
+# ==========================================
+# 4. INTELLIGENCE ARTIFICIELLE (LangChain4j / Ollama)
+# ==========================================
+langchain4j:
+  ollama:
+    chat-model:
+      base-url: ${OLLAMA_URL:http://localhost:11434}
+      model-name: llama3 # Ou mistral, selon ce que tu as "pull" dans ton conteneur Ollama
+      temperature: 0.7 # 0.0 pour du déterministe (json), 0.7 pour l'explication textuelle
+
+# ==========================================
+# 5. SÉCURITÉ (JWT)
+# ==========================================
+# C'est une configuration personnalisée que tu liras dans tes classes Java avec @Value("${app.security.jwt.secret}")
+app:
+  security:
+    jwt:
+      # Clé secrète de minimum 256 bits pour HMAC-SHA256 (Ne jamais mettre la vraie clé de prod ici)
+      secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
+      # Expiratio    n du token en millisecondes (Ex: 86400000 = 24 heures)
+      expiration: 86400000

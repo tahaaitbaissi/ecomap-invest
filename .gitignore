@@ -1,0 +1,51 @@
+# -----------------------------
+# OS / Editors
+# -----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+
+.idea/
+.vscode/
+
+# -----------------------------
+# Environment / secrets
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------
+# Backend (Spring Boot / Maven)
+# -----------------------------
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# -----------------------------
+# Frontend (Next.js / Node)
+# -----------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/.turbo/
+frontend/.pnpm-store/
+frontend/.vercel/
+
+# -----------------------------
+# Misc build artifacts
+# -----------------------------
+*.class
+*.iml
+*.tsbuildinfo
