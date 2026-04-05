@@ -2,7 +2,9 @@ package com.example.backend.bootstrap;
 
 import com.example.backend.entities.Role;
 import com.example.backend.entities.User;
+import com.example.backend.repositories.PoiRepository;
 import com.example.backend.repositories.UserRepository;
+import com.example.backend.services.CsvIngestionService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -12,10 +14,17 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PoiRepository poiRepository;
+    private final CsvIngestionService csvIngestionService;
 
-    public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DataInitializer(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           PoiRepository poiRepository,
+                           CsvIngestionService csvIngestionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.poiRepository = poiRepository;
+        this.csvIngestionService = csvIngestionService;
     }
 
     @Override
@@ -42,6 +51,11 @@ public class DataInitializer implements CommandLineRunner {
             testUser.setRole(Role.USER);
             userRepository.save(testUser);
             System.out.println("=> Test user created: user@example.com / user123");
+        }
+
+        if (poiRepository.count() == 0) {
+            int inserted = csvIngestionService.ingestFromCsv("data/mock_poi.csv");
+            System.out.println("=> POIs seeded from CSV: " + inserted);
         }
     }
 }

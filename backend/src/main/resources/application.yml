@@ -16,6 +16,7 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     # Pour le développement : met à jour le schéma automatiquement. En prod, utiliser 'validate' ou Flyway/Liquibase
     hibernate:
       ddl-auto: update
