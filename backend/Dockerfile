@@ -1,27 +1,23 @@
-# -------- Build stage --------
-FROM eclipse-temurin:21-jdk-alpine AS build
-WORKDIR /app
+# Build from repository root: docker compose uses context: . and dockerfile: backend/Dockerfile
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
+WORKDIR /build
 
-# Copy Maven wrapper + pom first for better layer caching
-COPY .mvn .mvn
-COPY mvnw pom.xml ./
+COPY pom.xml .
+COPY rmi-scoring-api/pom.xml rmi-scoring-api/
+COPY rmi-scoring-server/pom.xml rmi-scoring-server/
+COPY backend/pom.xml backend/
 
-# Download dependencies (cached if pom.xml unchanged)
-RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
+COPY rmi-scoring-api/src rmi-scoring-api/src
+COPY backend/src backend/src
 
-# Copy source and build jar
-COPY src src
-RUN ./mvnw -q -DskipTests clean package
+RUN mvn -q -pl backend -am -DskipTests clean package
 
-# -------- Runtime stage --------
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Optional JVM tuning for containers
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
 
-# Copy built Spring Boot jar
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /build/backend/target/*.jar app.jar
 
 EXPOSE 8080
 

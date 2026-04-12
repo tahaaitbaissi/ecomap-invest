@@ -58,3 +58,65 @@ app:
       secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
       # Expiratio    n du token en millisecondes (Ex: 86400000 = 24 heures)
       expiration: 86400000
+
+  # Nœud RMI distant (calcul de score — Systèmes distribués)
+  rmi:
+    scoring:
+      host: ${RMI_SCORING_HOST:localhost}
+      port: ${RMI_SCORING_REGISTRY_PORT:1099}
+      service-name: ${RMI_SERVICE_NAME:ScoringService}
+
+  # POI service: proximity analysis and saturation scoring
+  poi:
+    # Categories considered as positive drivers (anchor tenants, infrastructure)
+    driver-categories: ${POI_DRIVER_CATEGORIES:category=school,category=university,category=office}
+    # Radius (km) to search for driver POIs (positive influence)
+    radius-drivers-km: ${POI_RADIUS_DRIVERS_KM:2.0}
+    # Radius (km) to search for competitor POIs (negative influence)
+    radius-competitors-km: ${POI_RADIUS_COMPETITORS_KM:1.0}
+    # Maximum POI count used to normalize density to [0, 1]
+    max-density-count: ${POI_MAX_DENSITY_COUNT:50}
+
+# ==========================================
+# 6. RESILIENCE4J (Distributed Systems Resilience Patterns)
+# ==========================================
+resilience4j:
+  circuitbreaker:
+    instances:
+      rmiScoring:
+        # Circuit opens after 50% requests fail within a recent time window
+        failure-rate-threshold: 50
+        # Duration of time window for failure tracking
+        slow-call-duration-threshold: 10s
+        # Circuit opens also if >50% requests are slower than this
+        slow-call-rate-threshold: 50
+        # Number of calls before decision to open/close circuit
+        permitted-number-of-calls-in-half-open-state: 3
+        # How long to wait in OPEN state before trying HALF_OPEN
+        wait-duration-in-open-state: 30s
+        # Automatically transition to HALF_OPEN after wait duration
+        automatic-transition-enabled: true
+        # Size of the sliding window (number of calls to track)
+        sliding-window-size: 10
+        # Number of retries allowed
+        minimum-number-of-calls: 5
+
+  retry:
+    instances:
+      rmiScoring:
+        # Maximum number of retry attempts
+        max-attempts: 3
+        # Delay between retries
+        wait-duration: 1s
+        # Retry only on these exceptions
+        retry-exceptions:
+          - java.rmi.RemoteException
+          - java.rmi.NotBoundException
+
+  timelimiter:
+    instances:
+      rmiScoring:
+        # Timeout duration for RMI calls
+        timeout-duration: 5s
+        # Cancel the ongoing task if timeout is reached
+        cancel-running-future: true

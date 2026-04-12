@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Base de données PostGIS
   postgres:
@@ -29,6 +27,29 @@ services:
     networks:
       - backend
 
+  # RMI scoring node (JVM séparée — Systèmes distribués)
+  rmi-scoring:
+    build:
+      context: .
+      dockerfile: rmi-scoring-server/Dockerfile
+    container_name: ecomap-rmi-scoring
+    restart: unless-stopped
+    environment:
+      RMI_REGISTRY_PORT: "1099"
+      RMI_EXPORT_PORT: "45000"
+      RMI_SERVER_HOSTNAME: rmi-scoring
+    ports:
+      - "1099:1099"
+      - "45000:45000"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 1099 && nc -z 127.0.0.1 45000"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 15s
+
   # Ollama (LLM local)
   ollama:
     image: ollama/ollama:latest
@@ -45,14 +66,19 @@ services:
   # Backend Spring Boot
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: ecomap-backend
     restart: unless-stopped
     depends_on:
-      - postgres
-      - redis
-      - ollama
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_started
+      rmi-scoring:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecomap
       SPRING_DATASOURCE_USERNAME: ecomap
@@ -61,6 +87,8 @@ services:
       SPRING_REDIS_PORT: 6379
       OLLAMA_URL: http://ollama:11434
       JWT_SECRET: ${JWT_SECRET:-ChangeMeInProductionAtLeast32Chars123!}
+      RMI_SCORING_HOST: rmi-scoring
+      RMI_SCORING_REGISTRY_PORT: "1099"
     ports:
       - "8080:8080"
     networks:
@@ -68,16 +96,20 @@ services:
       - frontend
 
   # Frontend Next.js
+  # NEXT_PUBLIC_* is baked in at image build time; use build.args (see frontend Dockerfile).
+  # Base URL must be the host-reachable API root without duplicating /api/v1 (axios paths already include it).
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
     container_name: ecomap-frontend
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1   # interne
+      NEXT_PUBLIC_API_URL: http://localhost:8080
     ports:
       - "3000:3000"
     networks:

@@ -1,0 +1,12 @@
+# Repo root — used when build context is .
+.git
+.gitignore
+**/.idea
+**/.vscode
+**/target
+**/node_modules
+**/.next
+frontend/node_modules
+frontend/.next
+*.md
+!README-RMI.md

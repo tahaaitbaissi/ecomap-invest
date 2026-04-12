@@ -23,4 +23,70 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
                                    @Param("swLat") double swLat,
                                    @Param("neLng") double neLng,
                                    @Param("neLat") double neLat);
+<<<<<<< HEAD
+=======
+
+    /**
+     * Find all POIs within a radius (in kilometers) of a given location.
+     * @param latitude center latitude (WGS84)
+     * @param longitude center longitude (WGS84)
+     * @param radiusKm search radius in kilometers
+     * @return POIs within the radius
+     */
+    @Query(value = """
+            SELECT *
+            FROM poi p
+            WHERE ST_DWithin(
+                p.location::geography,
+                ST_Point(:longitude, :latitude)::geography,
+                :radiusMeters
+            )
+            """, nativeQuery = true)
+    List<Poi> findNearbyPois(@Param("latitude") double latitude,
+                             @Param("longitude") double longitude,
+                             @Param("radiusMeters") double radiusMeters);
+
+    /**
+     * Count POIs with a specific typeTag within a radius of a given location.
+     * @param typeTag the POI category (e.g., "category=school")
+     * @param latitude center latitude (WGS84)
+     * @param longitude center longitude (WGS84)
+     * @param radiusMeters search radius in meters
+     * @return count of matching POIs
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM poi p
+            WHERE p.type_tag = :typeTag
+            AND ST_DWithin(
+                p.location::geography,
+                ST_Point(:longitude, :latitude)::geography,
+                :radiusMeters
+            )
+            """, nativeQuery = true)
+    long countByTypeTagAndNearby(@Param("typeTag") String typeTag,
+                                 @Param("latitude") double latitude,
+                                 @Param("longitude") double longitude,
+                                 @Param("radiusMeters") double radiusMeters);
+
+    /**
+     * Count all POIs (any type) within a radius of a given location.
+     * @param latitude center latitude (WGS84)
+     * @param longitude center longitude (WGS84)
+     * @param radiusMeters search radius in meters
+     * @return count of nearby POIs
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM poi p
+            WHERE ST_DWithin(
+                p.location::geography,
+                ST_Point(:longitude, :latitude)::geography,
+                :radiusMeters
+            )
+            """, nativeQuery = true)
+    long countAllNearby(@Param("latitude") double latitude,
+                        @Param("longitude") double longitude,
+                        @Param("radiusMeters") double radiusMeters);
+>>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 }
