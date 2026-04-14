@@ -17,9 +17,9 @@ spring:
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    # Pour le développement : met à jour le schéma automatiquement. En prod, utiliser 'validate' ou Flyway/Liquibase
+    # Flyway gère le schéma; Hibernate ne fait qu'une validation stricte.
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false # Passer à true pour voir les requêtes générées dans la console
     properties:
       hibernate:
@@ -36,6 +36,14 @@ spring:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
       # timeout: 2000
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # PostGIS image already has objects in public (e.g. spatial_ref_sys). Without baseline,
+    # Flyway refuses a "non-empty" schema. Baseline at 0 so V1/V2 still apply (not skipped).
+    baseline-on-migrate: true
+    baseline-version: 0
 
 # ==========================================
 # 4. INTELLIGENCE ARTIFICIELLE (LangChain4j / Ollama)
