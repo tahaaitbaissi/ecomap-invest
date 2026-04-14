@@ -8,11 +8,7 @@ public record PoiMapResponse(
         String address,
         String typeTag,
         double latitude,
-<<<<<<< HEAD
-        double longitude
-=======
         double longitude,
         Double saturationScore
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 ) {
 }

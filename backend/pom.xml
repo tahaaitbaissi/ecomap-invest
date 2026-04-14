@@ -54,8 +54,6 @@
 			<version>5.9</version>
 		</dependency>
 		<dependency>
-<<<<<<< HEAD
-=======
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
 		</dependency>
@@ -64,7 +62,6 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 		<dependency>
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-spatial</artifactId>
 		</dependency>

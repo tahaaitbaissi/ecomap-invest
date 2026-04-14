@@ -12,10 +12,6 @@ export default function MapPage() {
     try {
       const data = await fetchPoisInBbox(bbox);
       setPois(data);
-<<<<<<< HEAD
-      console.log(`[MapPage] Loaded ${data.length} POIs in viewport`);
-=======
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
     } catch (err) {
       console.debug("[MapPage] POI fetch skipped (backend not ready):", err);
     }
@@ -30,11 +26,7 @@ export default function MapPage() {
         </span>
       </header>
       <div className="h-full w-full pt-12">
-<<<<<<< HEAD
-        <DynamicMap onBoundsChange={handleBoundsChange} />
-=======
         <DynamicMap pois={pois} onBoundsChange={handleBoundsChange} />
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
       </div>
     </main>
   );

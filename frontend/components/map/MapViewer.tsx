@@ -1,17 +1,11 @@
 "use client";
 
-<<<<<<< HEAD
-import { MapContainer, TileLayer, useMapEvents } from "react-leaflet";
-import type { LatLngBounds } from "leaflet";
-import "@/lib/leaflet-icon-fix";
-=======
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents, useMap } from "react-leaflet";
 import type { LatLngBounds } from "leaflet";
 import "@/lib/leaflet-icon-fix";
 import type { PoiDto } from "@/services/api/poiService";
 import type { HexagonDto } from "@/services/api/hexagonService";
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 
 const CASABLANCA: [number, number] = [33.5731, -7.5898];
 const DEFAULT_ZOOM = 13;
@@ -22,14 +16,10 @@ export interface BoundingBox {
 }
 
 export interface MapViewerProps {
-<<<<<<< HEAD
-  onBoundsChange?: (bbox: BoundingBox) => void;
-=======
   pois?: PoiDto[];
   hexagons?: HexagonDto[];
   onBoundsChange?: (bbox: BoundingBox) => void;
   flyTo?: { lat: number; lng: number } | null;
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 }
 
 function BoundsTracker({ onBoundsChange }: { onBoundsChange?: (bbox: BoundingBox) => void }) {
@@ -55,9 +45,6 @@ function BoundsTracker({ onBoundsChange }: { onBoundsChange?: (bbox: BoundingBox
   return null;
 }
 
-<<<<<<< HEAD
-export default function MapViewer({ onBoundsChange }: MapViewerProps) {
-=======
 function FlyToHandler({ flyTo }: { flyTo?: { lat: number; lng: number } | null }) {
   const map = useMap();
   const lastKey = useRef<string | null>(null);
@@ -81,7 +68,6 @@ function hexColor(score: number): string {
 }
 
 export default function MapViewer({ pois, hexagons, onBoundsChange, flyTo }: MapViewerProps) {
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
   return (
     <MapContainer center={CASABLANCA} zoom={DEFAULT_ZOOM} className="h-full w-full" zoomControl>
       <TileLayer
@@ -89,8 +75,6 @@ export default function MapViewer({ pois, hexagons, onBoundsChange, flyTo }: Map
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <BoundsTracker onBoundsChange={onBoundsChange} />
-<<<<<<< HEAD
-=======
       <FlyToHandler flyTo={flyTo} />
       {hexagons?.map((h) => (
         <Polygon
@@ -119,7 +103,6 @@ export default function MapViewer({ pois, hexagons, onBoundsChange, flyTo }: Map
           </Popup>
         </Marker>
       ))}
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
     </MapContainer>
   );
 }

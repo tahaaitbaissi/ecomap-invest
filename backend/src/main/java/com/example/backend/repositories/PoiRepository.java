@@ -23,8 +23,6 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
                                    @Param("swLat") double swLat,
                                    @Param("neLng") double neLng,
                                    @Param("neLat") double neLat);
-<<<<<<< HEAD
-=======
 
     /**
      * Find all POIs within a radius (in kilometers) of a given location.
@@ -88,5 +86,4 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
     long countAllNearby(@Param("latitude") double latitude,
                         @Param("longitude") double longitude,
                         @Param("radiusMeters") double radiusMeters);
->>>>>>> 246537c (feat: add axios instance with request/response interceptors)
 }
