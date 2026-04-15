@@ -73,6 +73,12 @@ app:
       host: ${RMI_SCORING_HOST:localhost}
       port: ${RMI_SCORING_REGISTRY_PORT:1099}
       service-name: ${RMI_SERVICE_NAME:ScoringService}
+      # Dedicated pool for blocking RMI calls wrapped in CompletableFuture (REST + pipeline)
+      pipeline-pool-size: ${RMI_SCORING_PIPELINE_POOL_SIZE:32}
+
+  # Saturation scoring: local (JVM formula) vs distributed (RMI via RmiScoringClient pipeline + formula fallback)
+  scoring:
+    strategy: ${SCORING_STRATEGY:local}
 
   # POI service: proximity analysis and saturation scoring
   poi:
@@ -108,6 +114,15 @@ resilience4j:
         sliding-window-size: 10
         # Number of retries allowed
         minimum-number-of-calls: 5
+      rmiScoringPipeline:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 10s
+        slow-call-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        automatic-transition-enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
 
   retry:
     instances:
@@ -120,6 +135,12 @@ resilience4j:
         retry-exceptions:
           - java.rmi.RemoteException
           - java.rmi.NotBoundException
+      rmiScoringPipeline:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.rmi.RemoteException
+          - java.rmi.NotBoundException
 
   timelimiter:
     instances:
@@ -127,4 +148,7 @@ resilience4j:
         # Timeout duration for RMI calls
         timeout-duration: 5s
         # Cancel the ongoing task if timeout is reached
+        cancel-running-future: true
+      rmiScoringPipeline:
+        timeout-duration: 5s
         cancel-running-future: true

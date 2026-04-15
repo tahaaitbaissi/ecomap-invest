@@ -3,7 +3,7 @@ package com.example.backend.services;
 import com.example.backend.controllers.dto.PoiMapResponse;
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
-import com.example.backend.services.rmi.RmiScoringClient;
+import com.example.backend.scoring.ScoringStrategy;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -15,9 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service for POI operations: retrieval, proximity analysis, and RMI-based saturation scoring.
- * Integrates with RMI scoring service to enrich POI responses with saturation scores computed
- * from driver count, competitor count, and density metrics.
+ * Service for POI operations: retrieval, proximity analysis, and saturation scoring via {@link ScoringStrategy}
+ * (local formula vs distributed RMI, selected by {@code app.scoring.strategy}).
  */
 @Slf4j
 @Service
@@ -25,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PoiService {
 
     private final PoiRepository poiRepository;
-    private final RmiScoringClient rmiScoringClient;
+    private final ScoringStrategy scoringStrategy;
 
     /**
      * Driver categories (POI types that positively influence investment potential).
@@ -101,14 +100,16 @@ public class PoiService {
      */
     private CompletableFuture<Double> computeSaturationScore(Poi poi) {
         try {
-            int drivers = countDriversNear(poi);
-            int competitors = countCompetitorsNear(poi);
-            double density = estimateDensity(poi);
+            double lat = poi.getLocation().getY();
+            double lng = poi.getLocation().getX();
+            int drivers = countDriversNear(lat, lng);
+            int competitors = countCompetitorsNearForPoi(lat, lng, poi.getTypeTag());
+            double density = estimateDensity(lat, lng);
 
-            log.debug("Computing RMI score for POI {} ({}): drivers={}, competitors={}, density={}",
+            log.debug("Computing saturation score for POI {} ({}): drivers={}, competitors={}, density={}",
                 poi.getId(), poi.getName(), drivers, competitors, density);
 
-            return rmiScoringClient.computeSaturationScore(drivers, competitors, density);
+            return scoringStrategy.computeSaturationScore(drivers, competitors, density);
         } catch (Exception e) {
             log.error("Exception during saturation score computation setup for POI {}: {}",
                 poi.getId(), e.getMessage(), e);
@@ -120,15 +121,15 @@ public class PoiService {
      * Count "driver" POIs (positive indicators) within the configured driver radius.
      * Drivers include schools, universities, offices, etc.
      */
-    private int countDriversNear(Poi poi) {
+    private int countDriversNear(double lat, double lng) {
         Set<String> drivers = getDriverCategories();
         long total = 0;
 
         for (String driverCategory : drivers) {
             long count = poiRepository.countByTypeTagAndNearby(
                 driverCategory,
-                poi.getLocation().getY(),
-                poi.getLocation().getX(),
+                lat,
+                lng,
                 radiusDriversKm * 1000  // Convert km to meters
             );
             total += count;
@@ -138,14 +139,13 @@ public class PoiService {
     }
 
     /**
-     * Count "competitor" POIs (negative indicators) with the same type_tag within the configured competitor radius.
-     * Competitors are other POIs of the same category (e.g., if this is a supermarket, other supermarkets are competitors).
+     * Competitors for an existing POI row: same type_tag count minus the focal feature.
      */
-    private int countCompetitorsNear(Poi poi) {
+    private int countCompetitorsNearForPoi(double lat, double lng, String typeTag) {
         long count = poiRepository.countByTypeTagAndNearby(
-            poi.getTypeTag(),
-            poi.getLocation().getY(),
-            poi.getLocation().getX(),
+            typeTag,
+            lat,
+            lng,
             radiusCompetitorsKm * 1000  // Convert km to meters
         );
         return (int) Math.min(Math.max(count - 1, 0), Integer.MAX_VALUE);  // Exclude the POI itself
@@ -158,10 +158,10 @@ public class PoiService {
      *
      * In a production system, this could integrate real census/traffic data for more accuracy.
      */
-    private double estimateDensity(Poi poi) {
+    private double estimateDensity(double lat, double lng) {
         long nearbyPoiCount = poiRepository.countAllNearby(
-            poi.getLocation().getY(),
-            poi.getLocation().getX(),
+            lat,
+            lng,
             radiusDriversKm * 1000  // Use driver radius for density estimation
         );
 
