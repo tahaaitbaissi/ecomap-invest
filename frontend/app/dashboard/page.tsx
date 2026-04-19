@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/profile/Header";
 import Sidebar from "@/components/profile/Sidebar";
 import Map from "@/components/profile/Map";
+import RightPanel from "@/components/profile/RightPanel";
 import { getToken } from "@/lib/auth";
 
 export default function DashboardPage() {
@@ -17,13 +18,14 @@ export default function DashboardPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" style={{ display: "flex", flexDirection: "column" }}>
       <Header />
-      <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-5">
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
-          <Sidebar />
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <Sidebar />
+        <main style={{ flex: 1, padding: "20px", overflow: "auto", minHeight: 0 }}>
           <Map />
-        </div>
+        </main>
+        <RightPanel />
       </div>
     </div>
   );
