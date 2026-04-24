@@ -8,6 +8,7 @@ COPY rmi-scoring-server/pom.xml rmi-scoring-server/
 COPY backend/pom.xml backend/
 
 COPY rmi-scoring-api/src rmi-scoring-api/src
+COPY rmi-scoring-server/src rmi-scoring-server/src
 COPY backend/src backend/src
 
 RUN mvn -q -pl backend -am -DskipTests clean package
