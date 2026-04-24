@@ -102,6 +102,19 @@ app:
     # Maximum POI count used to normalize density to [0, 1]
     max-density-count: ${POI_MAX_DENSITY_COUNT:50}
 
+  # H3 hexagon map API: viewport cells + scoring (no DB pre-seed required)
+  hexagon:
+    resolution: ${HEXAGON_RESOLUTION:9}
+    max-cells: ${HEXAGON_MAX_CELLS:2000}
+    # Reject bboxes larger than this span in degrees (lat and lng each)
+    max-bbox-deg: ${HEXAGON_MAX_BBOX_DEG:0.5}
+    # Comma-separated type_tag values used as competitors when no dynamic_profile
+    default-competitor-tags: ${HEXAGON_DEFAULT_COMPETITORS:amenity=restaurant,shop=supermarket}
+    # If demographics.population_density is present, use this cap for 0-1 scale (inhabitants / km² style)
+    demographic-density-cap: ${HEXAGON_DEMO_DENSITY_CAP:20000.0}
+    # 0.0 = ignore demographics table; 1.0 = use only demographics when a row exists
+    demographic-blend: ${HEXAGON_DEMO_BLEND:0.5}
+
 # ==========================================
 # 6. RESILIENCE4J (Distributed Systems Resilience Patterns)
 # ==========================================
