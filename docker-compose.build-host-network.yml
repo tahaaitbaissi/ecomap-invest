@@ -1,0 +1,11 @@
+# Optional overlay for Linux: use host network during image build so Maven can
+# reach repo.maven.apache.org when Docker’s embedded DNS fails (EAI_AGAIN / "Unknown host").
+# Usage: docker compose -f docker-compose.yml -f docker-compose.build-host-network.yml up -d --build
+# Not for Docker Desktop on macOS/Windows in most setups; use the retry loop in Dockerfiles first.
+services:
+  rmi-scoring:
+    build:
+      network: host
+  backend:
+    build:
+      network: host

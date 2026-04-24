@@ -11,7 +11,19 @@ COPY backend/pom.xml backend/
 COPY rmi-scoring-api/src rmi-scoring-api/src
 COPY rmi-scoring-server/src rmi-scoring-server/src
 
-RUN mvn -q -pl rmi-scoring-server -am -DskipTests clean package
+# Retries: Docker bridge DNS often returns EAI_AGAIN for repo.maven.apache.org ("Unknown host ... Try again").
+# Optional: docker compose -f docker-compose.yml -f docker-compose.build-host-network.yml up -d --build
+RUN for i in 1 2 3 4 5; do \
+  if mvn -B -V -q -pl rmi-scoring-server -am -DskipTests clean package; then \
+    break; \
+  fi; \
+  if [ "$i" -eq 5 ]; then \
+    echo "mvn failed after 5 attempts"; \
+    exit 1; \
+  fi; \
+  echo "mvn failed (attempt $i/5), retrying in 8s..."; \
+  sleep 8; \
+done
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

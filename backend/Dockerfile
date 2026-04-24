@@ -11,7 +11,18 @@ COPY rmi-scoring-api/src rmi-scoring-api/src
 COPY rmi-scoring-server/src rmi-scoring-server/src
 COPY backend/src backend/src
 
-RUN mvn -q -pl backend -am -DskipTests clean package
+# Same as rmi-scoring-server/Dockerfile (bridge DNS to Maven Central)
+RUN for i in 1 2 3 4 5; do \
+  if mvn -B -V -q -pl backend -am clean test package; then \
+    break; \
+  fi; \
+  if [ "$i" -eq 5 ]; then \
+    echo "mvn failed after 5 attempts"; \
+    exit 1; \
+  fi; \
+  echo "mvn failed (attempt $i/5), retrying in 8s..."; \
+  sleep 8; \
+done
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

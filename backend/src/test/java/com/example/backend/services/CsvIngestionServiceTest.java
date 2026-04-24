@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -45,5 +46,12 @@ class CsvIngestionServiceTest {
 
         verify(poiRepository, never()).save(any());
         assertEquals(0, count);
+    }
+
+    @Test
+    void ingest_missingFile_throws() {
+        assertThrows(
+                RuntimeException.class,
+                () -> service.ingestFromCsv("data/does_not_exist.csv"));
     }
 }

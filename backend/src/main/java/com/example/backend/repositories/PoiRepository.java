@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface PoiRepository extends JpaRepository<Poi, UUID> {
     Optional<Poi> findByOsmId(String osmId);
 
+    boolean existsByOsmId(String osmId);
+
     @Query(value = """
             SELECT *
             FROM poi p

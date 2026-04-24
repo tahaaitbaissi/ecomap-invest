@@ -6,6 +6,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+RUN npm test
 RUN npm run build
 
 # Étape 2 : Production

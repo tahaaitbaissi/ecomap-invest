@@ -5,47 +5,51 @@ import com.example.backend.overpass.OsmElement;
 import com.example.backend.repositories.PoiRepository;
 import org.locationtech.jts.geom.*;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.stereotype.Component;
-import java.util.Random;
+import java.util.List;
+import java.util.Map;
 
 @Component
 @StepScope
 public class PoiItemProcessor implements ItemProcessor<OsmElement, Poi> {
 
     private final PoiRepository poiRepository;
-    private static final Random RANDOM = new Random();
-
     public PoiItemProcessor(PoiRepository poiRepository) {
         this.poiRepository = poiRepository;
     }
 
     @Override
     public Poi process(OsmElement element) throws Exception {
-        if (poiRepository.existsByOsmId(element.getId().toString())) {
+        if (poiRepository.existsByOsmId(Long.toString(element.id()))) {
             return null;
         }
         GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
         Point location = factory.createPoint(
-            new Coordinate(element.getLon(), element.getLat())
+            new Coordinate(element.lon(), element.lat())
         );
-        String name = element.getTags().getOrDefault("name", "Unknown");
-        boolean isHighIncome = isHighIncomeZone(element.getLat(), element.getLon());
-        int priceLevel = isHighIncome ? RANDOM.nextInt(2) + 3 : RANDOM.nextInt(3) + 1;
-        float rating = 3.0f + RANDOM.nextFloat() * 2.0f;
+        Map<String, String> tags = element.tags();
+        String name = tags.getOrDefault("name", "Unknown");
 
-        return Poi.builder()
-            .osmId(element.getId().toString())
-            .name(name)
-            .typeTag(element.getTypeTag())
-            .location(location)
-            .priceLevel(priceLevel)
-            .rating(rating)
-            .build();
+        Poi poi = new Poi();
+        poi.setOsmId(Long.toString(element.id()));
+        poi.setName(name);
+        poi.setTypeTag(deriveTypeTag(tags));
+        poi.setLocation(location);
+        return poi;
     }
 
-    private boolean isHighIncomeZone(double lat, double lon) {
-        return (Math.abs(lat - 33.57) < 0.02 && Math.abs(lon + 7.63) < 0.02)
-            || (Math.abs(lat - 33.58) < 0.02 && Math.abs(lon + 7.61) < 0.02);
+    private static String deriveTypeTag(Map<String, String> tags) {
+        for (String key : List.of("amenity", "shop", "leisure", "office", "tourism")) {
+            String v = tags.get(key);
+            if (v != null && !v.isBlank()) {
+                return key + "=" + v;
+            }
+        }
+        if (!tags.isEmpty()) {
+            var e = tags.entrySet().iterator().next();
+            return e.getKey() + "=" + e.getValue();
+        }
+        return "unknown";
     }
 }

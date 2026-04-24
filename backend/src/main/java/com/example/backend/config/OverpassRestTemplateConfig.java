@@ -11,13 +11,13 @@ public class OverpassRestTemplateConfig {
     public static final String OVERPASS_REST_TEMPLATE = "overpassRestTemplate";
 
     /**
-     * RestTemplate for Overpass: 5s connect, 30s read (large bbox queries can be slow).
+     * RestTemplate for Overpass: public instances often return 504 when busy; allow long reads + retries in the client.
      */
     @Bean(name = OVERPASS_REST_TEMPLATE)
     public RestTemplate overpassRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5_000);
-        factory.setReadTimeout(30_000);
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(120_000);
         return new RestTemplate(factory);
     }
 }

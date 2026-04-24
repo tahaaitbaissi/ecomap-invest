@@ -45,6 +45,11 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
+  batch:
+    job:
+      # Do not run batch jobs on startup; use admin API or the scheduler only.
+      enabled: false
+
 # ==========================================
 # 4. INTELLIGENCE ARTIFICIELLE (LangChain4j / Ollama)
 # ==========================================
@@ -79,6 +84,12 @@ app:
   # Saturation scoring: local (JVM formula) vs distributed (RMI via RmiScoringClient pipeline + formula fallback)
   scoring:
     strategy: ${SCORING_STRATEGY:local}
+
+  # Public Overpass API (see https://wiki.openstreetmap.org/wiki/Overpass_API)
+  overpass:
+    # Comma-separated mirrors; first is tried first, then others on 502/503/504/timeout
+    interpreter-urls: ${APP_OVERPASS_URLS:https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.openstreetmap.fr/api/interpreter}
+    full-retry-passes: ${APP_OVERPASS_RETRY_PASSES:3}
 
   # POI service: proximity analysis and saturation scoring
   poi:

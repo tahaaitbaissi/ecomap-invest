@@ -88,8 +88,8 @@ export default function MapViewer({ pois, hexagons, onBoundsChange, flyTo }: Map
           }}
         />
       ))}
-      {pois?.map((poi) => (
-        <Marker key={poi.id} position={[poi.latitude, poi.longitude]}>
+      {pois?.map((poi, index) => (
+        <Marker key={poi.id || `poi-${index}`} position={[poi.latitude, poi.longitude]}>
           <Popup>
             <strong>{poi.name ?? "Unknown"}</strong>
             <br />

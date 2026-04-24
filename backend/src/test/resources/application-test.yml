@@ -1,0 +1,47 @@
+# Active with @ActiveProfiles("test"). URL/host for Postgres and Redis are set by
+# com.example.backend.testsupport.AbstractPostgisRedisIntegrationTest (Testcontainers), not this file.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  data:
+    redis:
+      # host/port set dynamically
+      host: 127.0.0.1
+      port: 6379
+  flyway:
+    enabled: true
+  batch:
+    job:
+      enabled: false
+
+# LangChain4j is only in yml, not a dependency; keep harmless default for tests
+langchain4j:
+  ollama:
+    chat-model:
+      base-url: http://127.0.0.1:1
+      model-name: llama3
+      temperature: 0.0
+
+app:
+  security:
+    jwt:
+      secret: TestJwtSecretKeyForUnitAndIntegrationTestsMustBe256BitLongString!!
+      expiration: 86400000
+  rmi:
+    scoring:
+      host: 127.0.0.1
+      port: 1099
+      service-name: ScoringService
+      pipeline-pool-size: 4
+  scoring:
+    strategy: local
+  overpass:
+    interpreter-urls: http://127.0.0.1:1/api/interpreter
+    full-retry-passes: 1
+
+logging:
+  level:
+    org.springframework: WARN
+    com.example.backend: INFO
