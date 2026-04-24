@@ -4,6 +4,7 @@ import com.example.backend.controllers.dto.PoiMapResponse;
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.scoring.ScoringStrategy;
+import com.example.backend.util.ViewportBbox;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -51,10 +52,17 @@ public class PoiService {
     @Value("${app.poi.max-density-count:50}")
     private int maxDensityCount;
 
+    /**
+     * Max span of POI viewport bbox in degrees (lat and lng), same as hexagons: swLng,swLat,neLng,neLat.
+     */
+    @Value("${app.poi.max-bbox-deg:0.5}")
+    private double maxBboxDeg;
+
     private volatile Set<String> cachedDriverCategories;
 
     @Transactional(readOnly = true)
     public List<PoiMapResponse> getPoisInBoundingBox(double swLng, double swLat, double neLng, double neLat) {
+        ViewportBbox.validatePoiView(swLng, swLat, neLng, neLat, maxBboxDeg);
         List<Poi> pois = poiRepository.findAllInBoundingBox(swLng, swLat, neLng, neLat);
 
         // Compute saturation scores concurrently for all POIs
@@ -206,4 +214,5 @@ public class PoiService {
             saturationScore
         );
     }
+
 }

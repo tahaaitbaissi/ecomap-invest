@@ -25,6 +25,9 @@ langchain4j:
       temperature: 0.0
 
 app:
+  h3:
+    seed:
+      enabled: false
   security:
     jwt:
       secret: TestJwtSecretKeyForUnitAndIntegrationTestsMustBe256BitLongString!!

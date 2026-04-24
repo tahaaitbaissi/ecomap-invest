@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class HexagonScoringServiceTest {
@@ -52,7 +54,7 @@ class HexagonScoringServiceTest {
         DynamicProfileRepository dp = mock(DynamicProfileRepository.class);
         DemographicsRepository dem = mock(DemographicsRepository.class);
         H3Core h3 = mock(H3Core.class);
-        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem);
+        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem, null);
         wireDefaults(svc);
 
         assertThrows(
@@ -81,7 +83,7 @@ class HexagonScoringServiceTest {
         when(poi.countByTypeTagAndNearby(anyString(), anyDouble(), anyDouble(), anyDouble()))
                 .thenReturn(0L);
         when(poi.countAllNearby(anyDouble(), anyDouble(), anyDouble())).thenReturn(0L);
-        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem);
+        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem, null);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, null);
@@ -97,7 +99,7 @@ class HexagonScoringServiceTest {
         DemographicsRepository dem = mock(DemographicsRepository.class);
         H3Core h3 = mock(H3Core.class);
         when(dp.findById(any(UUID.class))).thenReturn(Optional.empty());
-        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem);
+        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem, null);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         assertThrows(
@@ -144,11 +146,44 @@ class HexagonScoringServiceTest {
         when(poi.countByTypeTagAndNearby(anyString(), anyDouble(), anyDouble(), anyDouble()))
                 .thenReturn(0L);
         when(poi.countAllNearby(anyDouble(), anyDouble(), anyDouble())).thenReturn(0L);
-        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem);
+        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem, null);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, prof.getId());
         assertTrue(!r.isEmpty());
+    }
+
+    @Test
+    void getHexagons_cacheHit_usesRawFromRedis() {
+        PoiRepository poi = mock(PoiRepository.class);
+        DynamicProfileRepository dp = mock(DynamicProfileRepository.class);
+        DemographicsRepository dem = mock(DemographicsRepository.class);
+        H3Core h3 = mock(H3Core.class);
+        long fakeCell = 0x891ea6c0d47ffffL;
+        when(h3.polygonToCells(anyList(), anyList(), anyInt())).thenReturn(List.of(fakeCell));
+        when(h3.h3ToString(fakeCell)).thenReturn("891ea6c0d47ffff");
+        when(h3.stringToH3("891ea6c0d47ffff")).thenReturn(fakeCell);
+        when(h3.cellToLatLng(fakeCell)).thenReturn(new LatLng(33.57, -7.59));
+        when(h3.cellToBoundary(fakeCell))
+                .thenReturn(
+                        List.of(
+                                new LatLng(33.56, -7.60),
+                                new LatLng(33.57, -7.58),
+                                new LatLng(33.58, -7.59)));
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> vops = mock(ValueOperations.class);
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        when(redis.opsForValue()).thenReturn(vops);
+        when(vops.multiGet(any()))
+                .thenReturn(List.of("0.3"));
+
+        HexagonScoringService svc = new HexagonScoringService(h3, poi, dp, dem, redis);
+        wireDefaults(svc);
+        String bbox = "-7.59,33.57,-7.57,33.59";
+        List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, null);
+        assertTrue(r.size() == 1);
+        verify(poi, org.mockito.Mockito.never())
+                .countByTypeTagAndNearby(anyString(), anyDouble(), anyDouble(), anyDouble());
     }
 
     void wireDefaults(HexagonScoringService svc) {
@@ -162,5 +197,7 @@ class HexagonScoringServiceTest {
         ReflectionTestUtils.setField(svc, "defaultCompetitorTags", "amenity=restaurant");
         ReflectionTestUtils.setField(svc, "demographicDensityCap", 20_000.0);
         ReflectionTestUtils.setField(svc, "demographicBlend", 0.0);
+        ReflectionTestUtils.setField(svc, "cacheEnabled", true);
+        ReflectionTestUtils.setField(svc, "cacheTtlSeconds", 3600);
     }
 }

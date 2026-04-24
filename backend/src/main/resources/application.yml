@@ -93,6 +93,8 @@ app:
 
   # POI service: proximity analysis and saturation scoring
   poi:
+    # Max bbox width/height in degrees (same order as /hexagons: swLng,swLat,neLng,neLat)
+    max-bbox-deg: ${POI_MAX_BBOX_DEG:0.5}
     # Categories considered as positive drivers (anchor tenants, infrastructure)
     driver-categories: ${POI_DRIVER_CATEGORIES:category=school,category=university,category=office}
     # Radius (km) to search for driver POIs (positive influence)
@@ -101,6 +103,14 @@ app:
     radius-competitors-km: ${POI_RADIUS_COMPETITORS_KM:1.0}
     # Maximum POI count used to normalize density to [0, 1]
     max-density-count: ${POI_MAX_DENSITY_COUNT:50}
+
+  # H3: seed h3_hexagon for Casablanca on startup (disabled in tests; see application-test.yml)
+  h3:
+    seed:
+      enabled: true
+    # Salt for dev demographics random fields (reproducible per h3 index)
+    demographics:
+      salt: 893451263
 
   # H3 hexagon map API: viewport cells + scoring (no DB pre-seed required)
   hexagon:
@@ -114,6 +124,10 @@ app:
     demographic-density-cap: ${HEXAGON_DEMO_DENSITY_CAP:20000.0}
     # 0.0 = ignore demographics table; 1.0 = use only demographics when a row exists
     demographic-blend: ${HEXAGON_DEMO_BLEND:0.5}
+    # Per-cell raw score cache in Redis: score:{profileId|__none__}:{h3}
+    cache:
+      enabled: ${HEXAGON_SCORE_CACHE_ENABLED:true}
+      ttl-seconds: ${HEXAGON_SCORE_CACHE_TTL:3600}
 
 # ==========================================
 # 6. RESILIENCE4J (Distributed Systems Resilience Patterns)
@@ -121,6 +135,15 @@ app:
 resilience4j:
   circuitbreaker:
     instances:
+      nominatim:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 3s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 5
       rmiScoring:
         # Circuit opens after 50% requests fail within a recent time window
         failure-rate-threshold: 50
@@ -150,6 +173,12 @@ resilience4j:
 
   retry:
     instances:
+      nominatim:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
       rmiScoring:
         # Maximum number of retry attempts
         max-attempts: 3
@@ -168,6 +197,9 @@ resilience4j:
 
   timelimiter:
     instances:
+      nominatim:
+        timeout-duration: 5s
+        cancel-running-future: true
       rmiScoring:
         # Timeout duration for RMI calls
         timeout-duration: 5s

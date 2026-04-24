@@ -14,20 +14,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class HexagonScoringService {
+
+    public static final String DEFAULT_PROFILE_CACHE_NS = "__none__";
 
     private final H3Core h3;
     private final PoiRepository poiRepository;
     private final DynamicProfileRepository dynamicProfileRepository;
     private final DemographicsRepository demographicsRepository;
+    @Nullable
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Value("${app.poi.driver-categories}")
     private String driverCategoriesConfig;
@@ -58,6 +66,26 @@ public class HexagonScoringService {
 
     @Value("${app.hexagon.demographic-blend:0.0}")
     private double demographicBlend;
+
+    @Value("${app.hexagon.cache.enabled:true}")
+    private boolean cacheEnabled;
+
+    @Value("${app.hexagon.cache.ttl-seconds:3600}")
+    private int cacheTtlSeconds;
+
+    @Autowired
+    public HexagonScoringService(
+            H3Core h3,
+            PoiRepository poiRepository,
+            DynamicProfileRepository dynamicProfileRepository,
+            DemographicsRepository demographicsRepository,
+            @Nullable StringRedisTemplate stringRedisTemplate) {
+        this.h3 = h3;
+        this.poiRepository = poiRepository;
+        this.dynamicProfileRepository = dynamicProfileRepository;
+        this.demographicsRepository = demographicsRepository;
+        this.stringRedisTemplate = stringRedisTemplate;
+    }
 
     @Transactional(readOnly = true)
     public List<HexagonMapResponse> getHexagonsInBbox(String bbox, UUID profileId) {
@@ -90,27 +118,61 @@ public class HexagonScoringService {
         double driverRadiusM = radiusDriversKm * 1000.0;
         double competitorRadiusM = radiusCompetitorsKm * 1000.0;
 
-        List<Double> preNormalized = new ArrayList<>(h3IndexStrings.size());
-        List<HexagonMapResponse> withPlaceholders = new ArrayList<>();
-        for (String h3Index : h3IndexStrings) {
+        int n = h3IndexStrings.size();
+        String cacheNs = profileId == null ? DEFAULT_PROFILE_CACHE_NS : profileId.toString();
+        List<String> cacheKeys =
+                h3IndexStrings.stream().map(hi -> "score:" + cacheNs + ":" + hi).toList();
+
+        List<HexagonMapResponse> withPlaceholders = new ArrayList<>(n);
+        Double[] preNormalized = new Double[n];
+        for (int i = 0; i < n; i++) {
+            String h3Index = h3IndexStrings.get(i);
             long cell = h3.stringToH3(h3Index);
-            LatLng c = h3.cellToLatLng(cell);
-            double lat = c.lat;
-            double lng = c.lng;
-
-            int driversI = toBoundedInt(weightedCount(cfg.driverTags, lat, lng, driverRadiusM));
-            int competitorsI = toBoundedInt(weightedCount(cfg.competitorTags, lat, lng, competitorRadiusM));
-            double density01 = densityForCell(h3Index, lat, lng, driverRadiusM, cfg);
-            double cellScore = SaturationFormula.apply(driversI, competitorsI, density01);
-            preNormalized.add(cellScore);
-
             List<HexagonMapResponse.LatLng> ring = h3.cellToBoundary(cell).stream()
                     .map(p -> new HexagonMapResponse.LatLng(p.lat, p.lng))
                     .toList();
             withPlaceholders.add(new HexagonMapResponse(h3Index, 0.0, ring));
         }
 
-        double[] minMax = minMaxOrNeutral(preNormalized);
+        boolean[] fromRedis = new boolean[n];
+        if (stringRedisTemplate != null && cacheEnabled) {
+            try {
+                List<String> cached = stringRedisTemplate.opsForValue().multiGet(cacheKeys);
+                for (int i = 0; i < n; i++) {
+                    if (cached == null) {
+                        break;
+                    }
+                    String c = i < cached.size() ? cached.get(i) : null;
+                    if (c != null && !c.isBlank()) {
+                        try {
+                            preNormalized[i] = Double.parseDouble(c);
+                            fromRedis[i] = true;
+                        } catch (NumberFormatException e) {
+                            preNormalized[i] = null;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Redis MGET for hex score cache failed: {}", e.getMessage());
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (preNormalized[i] == null) {
+                String h3Index = h3IndexStrings.get(i);
+                preNormalized[i] = computeCellRaw(
+                        h3Index, cfg, driverRadiusM, competitorRadiusM);
+            }
+        }
+
+        storeNewRawScoresInCacheIfNeeded(fromRedis, cacheKeys, preNormalized, n);
+
+        List<Double> preList = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            preList.add(preNormalized[i]);
+        }
+
+        double[] minMax = minMaxOrNeutral(preList);
         double min = minMax[0];
         double max = minMax[1];
         boolean flat = minMax[2] > 0.5; // 1.0 = all same
@@ -118,10 +180,43 @@ public class HexagonScoringService {
         List<HexagonMapResponse> out = new ArrayList<>();
         for (int i = 0; i < withPlaceholders.size(); i++) {
             HexagonMapResponse row = withPlaceholders.get(i);
-            double s = flat ? 50.0 : 100.0 * (preNormalized.get(i) - min) / (max - min);
+            double s = flat ? 50.0 : 100.0 * (preList.get(i) - min) / (max - min);
             out.add(new HexagonMapResponse(row.h3Index(), s, row.boundary()));
         }
         return out;
+    }
+
+    private void storeNewRawScoresInCacheIfNeeded(
+            boolean[] fromRedis, List<String> cacheKeys, Double[] preNormalized, int n) {
+        if (stringRedisTemplate == null || !cacheEnabled || cacheTtlSeconds <= 0) {
+            return;
+        }
+        try {
+            for (int i = 0; i < n; i++) {
+                if (fromRedis[i] || preNormalized[i] == null) {
+                    continue;
+                }
+                String key = cacheKeys.get(i);
+                String val = String.valueOf(preNormalized[i]);
+                stringRedisTemplate
+                        .opsForValue()
+                        .set(key, val, cacheTtlSeconds, TimeUnit.SECONDS);
+            }
+        } catch (Exception e) {
+            log.warn("Redis SET for hex score cache failed: {}", e.getMessage());
+        }
+    }
+
+    private double computeCellRaw(
+            String h3Index, ScoringConfig cfg, double driverRadiusM, double competitorRadiusM) {
+        long cell = h3.stringToH3(h3Index);
+        LatLng c = h3.cellToLatLng(cell);
+        double lat = c.lat;
+        double lng = c.lng;
+        int driversI = toBoundedInt(weightedCount(cfg.driverTags, lat, lng, driverRadiusM));
+        int competitorsI = toBoundedInt(weightedCount(cfg.competitorTags, lat, lng, competitorRadiusM));
+        double density01 = densityForCell(h3Index, lat, lng, driverRadiusM, cfg);
+        return SaturationFormula.apply(driversI, competitorsI, density01);
     }
 
     /** [min, max, flatFlag] with flatFlag 1.0 if min==max */

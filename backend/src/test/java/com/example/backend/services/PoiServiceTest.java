@@ -46,8 +46,9 @@ class PoiServiceTest {
         ReflectionTestUtils.setField(poiService, "radiusDriversKm", 2.0);
         ReflectionTestUtils.setField(poiService, "radiusCompetitorsKm", 1.0);
         ReflectionTestUtils.setField(poiService, "maxDensityCount", 50);
+        ReflectionTestUtils.setField(poiService, "maxBboxDeg", 0.5);
 
-        when(poiRepository.findAllInBoundingBox(0, 0, 1, 1)).thenReturn(List.of(p));
+        when(poiRepository.findAllInBoundingBox(0, 0, 0.4, 0.4)).thenReturn(List.of(p));
         when(poiRepository.countByTypeTagAndNearby("category=cafe", 33.5, -7.6, 2000.0))
                 .thenReturn(0L);
         when(poiRepository.countByTypeTagAndNearby("category=cafe", 33.5, -7.6, 1000.0))
@@ -56,7 +57,7 @@ class PoiServiceTest {
         when(scoringStrategy.computeSaturationScore(0, 0, 0.0))
                 .thenReturn(CompletableFuture.completedFuture(77.0));
 
-        List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 1, 1);
+        List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 0.4, 0.4);
         assertEquals(1, out.size());
         assertEquals(77.0, out.get(0).saturationScore());
     }
@@ -74,15 +75,16 @@ class PoiServiceTest {
         ReflectionTestUtils.setField(poiService, "radiusDriversKm", 2.0);
         ReflectionTestUtils.setField(poiService, "radiusCompetitorsKm", 1.0);
         ReflectionTestUtils.setField(poiService, "maxDensityCount", 50);
+        ReflectionTestUtils.setField(poiService, "maxBboxDeg", 0.5);
 
-        when(poiRepository.findAllInBoundingBox(0, 0, 1, 1)).thenReturn(List.of(p));
+        when(poiRepository.findAllInBoundingBox(0, 0, 0.4, 0.4)).thenReturn(List.of(p));
         when(poiRepository.countByTypeTagAndNearby("category=shop", 0, 0, 2000.0)).thenReturn(0L);
         when(poiRepository.countByTypeTagAndNearby("category=shop", 0, 0, 1000.0)).thenReturn(1L);
         when(poiRepository.countAllNearby(0, 0, 2000.0)).thenReturn(0L);
         when(scoringStrategy.computeSaturationScore(0, 0, 0.0))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("x")));
 
-        List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 1, 1);
+        List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 0.4, 0.4);
         assertEquals(1, out.size());
         assertNull(out.get(0).saturationScore());
     }

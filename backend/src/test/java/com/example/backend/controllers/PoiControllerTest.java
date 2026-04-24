@@ -1,7 +1,9 @@
 package com.example.backend.controllers;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,7 +39,14 @@ class PoiControllerTest {
                                         id, "N", "A", "shop=x", 33.5, -7.6, 12.0)));
         mockMvc.perform(get("/api/v1/poi").param("bbox", "-7.7,33.5,-7.5,33.6"))
                 .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", containsString("max-age=300")))
                 .andExpect(jsonPath("$[0].name").value("N"));
+    }
+
+    @Test
+    void getPois_bboxExceedsMaxSpan_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/poi").param("bbox", "-7.8,33.5,-6,33.6"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
