@@ -39,7 +39,7 @@ export default function Header() {
       <header style={{ height: "72px", padding: "0 48px", backgroundColor: "#1a56db" }} className="sticky top-0 z-30 w-full flex items-center justify-between">
         <button onClick={() => router.push("/dashboard")} className="flex items-center shrink-0" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
           <Image
-            src="/logoNoBg.png"
+            src="frontend\public\logoNoBg.png"
             alt="EcoMap Invest"
             width={220}
             height={64}

@@ -1,5 +1,5 @@
-import axios from "@/lib/axiosInstance";
 import type { BoundingBox } from "@/services/api/poiService";
+import { generateMockHexagons } from "@/lib/mockHexagonGenerator";
 
 export interface HexagonDto {
   h3Index: string;
@@ -8,8 +8,5 @@ export interface HexagonDto {
 }
 
 export async function fetchHexagonsInBbox(bbox: BoundingBox): Promise<HexagonDto[]> {
-  const { northEast: ne, southWest: sw } = bbox;
-  const bboxParam = `${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
-  const response = await axios.get<HexagonDto[]>(`/api/v1/hexagon?bbox=${bboxParam}`);
-  return response.data;
+  return generateMockHexagons(bbox);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -8,6 +8,8 @@ import {
 import { useStore } from "@/store/useStore";
 import { runSimulation } from "@/services/api/simulationService";
 import { getHexColor } from "@/lib/hexagonUtils";
+import { useSSEExplanation } from "@/hooks/useSSEExplanation";
+import TypewriterText from "@/components/profile/TypewriterText";
 
 export default function RightPanel() {
   const activeView = useStore((s) => s.activeView);
@@ -33,8 +35,20 @@ export default function RightPanel() {
 
 /* ---- Hex Details ---- */
 function HexDetailsPanel() {
-  const { selectedHexIndex, hexagonRecord } = useStore();
+  const { selectedHexIndex, hexagonRecord, profileId } = useStore();
   const hex = selectedHexIndex ? hexagonRecord[selectedHexIndex] : null;
+  const { text, isStreaming, isComplete, error, start, stop } = useSSEExplanation(
+    selectedHexIndex,
+    profileId,
+    hex?.score ?? 50
+  );
+
+  // Auto-start analysis whenever a new hexagon is selected
+  useEffect(() => {
+    if (selectedHexIndex) start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHexIndex]);
+
   if (!hex) {
     return (
       <div style={{ padding: "32px 16px", textAlign: "center", color: "#94a3b8", fontSize: "13px", lineHeight: 1.7 }}>
@@ -44,8 +58,24 @@ function HexDetailsPanel() {
   }
   const label = hex.score >= 80 ? "Excellent" : hex.score >= 60 ? "Good" : hex.score >= 40 ? "Fair" : "Poor";
   const hexNum = parseInt(hex.h3Index.slice(-3), 16) % 100;
+
+  // Deterministic mock POIs derived from h3Index
+  const seed = parseInt(hex.h3Index.slice(-4), 16);
+  const poiNames = ["Le Marrakchi", "Café Atlas", "Boutique Moda", "Épicerie Centrale", "Pharmacie du Parc", "Boulangerie Paul", "Sushi House", "Pizza Roma", "Hammam Luxe", "Librairie Ibn Rushd"];
+  const poiTypes = ["🍽️ Restaurant", "☕ Café", "🛍️ Retail", "🏪 Épicerie", "💊 Pharmacie", "🥐 Boulangerie", "🍱 Sushi", "🍕 Pizzeria", "💆 Spa", "📚 Librairie"];
+  const topPois = Array.from({ length: 3 }, (_, i) => ({
+    name: poiNames[(seed + i * 3) % poiNames.length],
+    type: poiTypes[(seed + i) % poiTypes.length],
+    rating: (3.5 + ((seed + i * 7) % 15) / 10).toFixed(1),
+    distance: `${100 + ((seed + i * 41) % 400)}m`,
+  }));
+
   return (
-    <div style={{ padding: "0 16px 20px" }}>
+    <>
+    <style>{`
+      @keyframes slideInRight { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+    `}</style>
+    <div style={{ padding: "0 16px 20px", animation: "slideInRight 0.28s ease-out" }}>
       <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a56db 0%, #2563eb 100%)", padding: "18px 16px", marginBottom: "16px", color: "#fff" }}>
         <div style={{ fontSize: "11px", fontWeight: 600, opacity: 0.8, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Investment Score</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "12px" }}>
@@ -93,10 +123,41 @@ function HexDetailsPanel() {
         <div style={{ fontSize: "24px", fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>4 222</div>
         <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>residents/km²</div>
       </div>
-      <button style={{ width: "100%", padding: "12px", background: "#1a56db", color: "#fff", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+      {/* Top POIs */}
+      <div style={{ marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+          <span style={{ fontSize: "13px" }}>📍</span>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Top POIs à proximité</span>
+        </div>
+        {topPois.map((poi, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", background: "#f8fafc", borderRadius: "8px", marginBottom: "6px" }}>
+            <span style={{ fontSize: "18px", flexShrink: 0 }}>{poi.type.split(" ")[0]}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{poi.name}</div>
+              <div style={{ fontSize: "10px", color: "#94a3b8" }}>{poi.type.split(" ").slice(1).join(" ")} · {poi.distance}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
+              <span style={{ fontSize: "11px", color: "#f59e0b" }}>⭐</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#374151" }}>{poi.rating}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <TypewriterText
+        text={text}
+        isStreaming={isStreaming}
+        isComplete={isComplete}
+        error={error}
+        onStop={stop}
+        onRegenerate={start}
+      />
+
+      <button style={{ width: "100%", padding: "12px", background: "#1a56db", color: "#fff", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginTop: "14px" }}>
         View Full Report
       </button>
     </div>
+    </>
   );
 }
 

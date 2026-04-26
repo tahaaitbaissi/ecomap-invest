@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DynamicMap from "@/components/map/DynamicMap";
 import type { BoundingBox } from "@/services/api/poiService";
 import { fetchPoisInBbox, type PoiDto } from "@/services/api/poiService";
 import { fetchHexagonsInBbox, type HexagonDto } from "@/services/api/hexagonService";
 import { searchAddress, type GeocodingResult } from "@/services/api/geocodingService";
 import { useStore } from "@/store/useStore";
+import { generateMockHexagons } from "@/lib/mockHexagonGenerator";
 
 export default function Map() {
   const {
@@ -22,45 +23,68 @@ export default function Map() {
     showPoiMarkers,
   } = useStore();
 
-  const hexagons = Object.values(hexagonRecord);
+  // Stable array — only recomputed when the record object reference changes
+  const hexagons = useMemo(() => Object.values(hexagonRecord), [hexagonRecord]);
+
+  // Seed hexagons immediately on mount without waiting for BoundsTracker
+  useEffect(() => {
+    const casablancaBbox: BoundingBox = {
+      northEast: { lat: 33.63, lng: -7.52 },
+      southWest: { lat: 33.51, lng: -7.66 },
+    };
+    mergeHexagons(generateMockHexagons(casablancaBbox));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [pois, setPois] = useState<PoiDto[]>([]);
+  const [isLoadingHexagons, setIsLoadingHexagons] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingSimPos, setPendingSimPos] = useState<{ lat: number; lng: number } | null>(null);
   const [simType, setSimType] = useState<"competitor" | "driver">("driver");
-  const [simTag, setSimTag] = useState("");
+  const [simTag, setSimTag] = useState("")
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleBoundsChange = useCallback(
     async (bbox: BoundingBox) => {
-      try {
-        const [poisData, hexData] = await Promise.all([
-          fetchPoisInBbox(bbox),
-          fetchHexagonsInBbox(bbox),
-        ]);
-        setPois(poisData);
-        mergeHexagons(hexData);
-      } catch {
-        // backend may not be ready
-      }
+      // Existing hexagons stay visible (stale) while the new fetch runs
+      setIsLoadingHexagons(true);
+
+      // Independent fetches — POI failure must not block hexagon display
+      const [poisResult, hexResult] = await Promise.allSettled([
+        fetchPoisInBbox(bbox),
+        fetchHexagonsInBbox(bbox),
+      ]);
+
+      if (poisResult.status === "fulfilled") setPois(poisResult.value);
+      if (hexResult.status === "fulfilled") mergeHexagons(hexResult.value);
+
+      setIsLoadingHexagons(false);
     },
     [mergeHexagons]
   );
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
+    setNoResults(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length < 3) { setResults([]); return; }
+    if (value.trim().length < 3) { setResults([]); setIsSearching(false); return; }
+    setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await searchAddress(value.trim());
         setResults(res);
+        setNoResults(res.length === 0);
       } catch {
         setResults([]);
+        setNoResults(true);
+      } finally {
+        setIsSearching(false);
       }
-    }, 400);
+    }, 300);
   };
 
   const handleResultClick = (result: GeocodingResult) => {
@@ -113,10 +137,16 @@ export default function Map() {
             boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          {isSearching ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a56db" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, animation: "spin 0.8s linear infinite" }}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          )}
           <input
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -124,6 +154,11 @@ export default function Map() {
             style={{ border: "none", outline: "none", flex: 1, fontSize: "14px", color: "#374151", background: "transparent", pointerEvents: "auto" }}
           />
         </div>
+        {noResults && !isSearching && search.trim().length >= 3 && (
+          <div style={{ marginTop: "6px", background: "#fff", borderRadius: "12px", boxShadow: "0 4px 24px rgba(0,0,0,0.15)", padding: "12px 20px", fontSize: "13px", color: "#94a3b8", pointerEvents: "auto" }}>
+            Aucun résultat trouvé
+          </div>
+        )}
         {results.length > 0 && (
           <ul style={{ marginTop: "6px", background: "#fff", borderRadius: "12px", boxShadow: "0 4px 24px rgba(0,0,0,0.15)", overflow: "hidden", pointerEvents: "auto" }}>
             {results.map((r, i) => (
@@ -138,6 +173,45 @@ export default function Map() {
           </ul>
         )}
       </div>
+
+      {/* Hexagon loading indicator (stale-while-revalidate: old hexagons stay visible) */}
+      {isLoadingHexagons && (
+        <div
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "rgba(255,255,255,0.90)",
+            backdropFilter: "blur(8px)",
+            borderRadius: "20px",
+            padding: "6px 14px",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+            fontSize: "12px",
+            color: "#475569",
+            fontWeight: 500,
+            pointerEvents: "none",
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#1a56db"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            style={{ animation: "spin 0.8s linear infinite" }}
+          >
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+          Chargement des zones…
+        </div>
+      )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Simulation mode hint */}
       {isSimulationActive && !pendingSimPos && (
