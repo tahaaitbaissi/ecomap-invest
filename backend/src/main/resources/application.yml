@@ -144,6 +144,15 @@ resilience4j:
         sliding-window-size: 10
         sliding-window-type: COUNT_BASED
         minimum-number-of-calls: 5
+      overpassApi:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 10s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 5
       rmiScoring:
         # Circuit opens after 50% requests fail within a recent time window
         failure-rate-threshold: 50
@@ -179,6 +188,12 @@ resilience4j:
         retry-exceptions:
           - java.io.IOException
           - org.springframework.web.client.ResourceAccessException
+      overpassApi:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
       rmiScoring:
         # Maximum number of retry attempts
         max-attempts: 3
@@ -199,6 +214,9 @@ resilience4j:
     instances:
       nominatim:
         timeout-duration: 5s
+        cancel-running-future: true
+      overpassApi:
+        timeout-duration: 30s
         cancel-running-future: true
       rmiScoring:
         # Timeout duration for RMI calls

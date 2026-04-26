@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import java.util.concurrent.CompletionException;
 import java.util.List;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,11 @@ public class GeocodingService {
         if (query == null || query.isBlank()) {
             return List.of();
         }
-        return nominatimSearchClient.fetch(query.trim());
+        try {
+            return nominatimSearchClient.fetchAsync(query.trim()).toCompletableFuture().join();
+        } catch (CompletionException ex) {
+            return List.of();
+        }
     }
 
     public record GeocodingResult(String displayName, double lat, double lng) {}

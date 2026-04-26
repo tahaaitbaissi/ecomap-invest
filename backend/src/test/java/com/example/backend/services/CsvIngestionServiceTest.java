@@ -5,9 +5,10 @@ import com.example.backend.repositories.PoiRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,15 +25,16 @@ class CsvIngestionServiceTest {
     @Mock
     private PoiRepository poiRepository;
 
-    @InjectMocks
-    private CsvIngestionService service;
+    private CsvIngestionService service() {
+        return new CsvIngestionService(poiRepository, new GeometryFactory(new PrecisionModel(), 4326));
+    }
 
     @Test
     void ingest_shouldSave5RowsFromMockCsv() {
         when(poiRepository.findByOsmId(anyString())).thenReturn(Optional.empty());
         when(poiRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        int count = service.ingestFromCsv("data/mock_poi.csv");
+        int count = service().ingestFromCsv("data/mock_poi.csv");
 
         verify(poiRepository, times(5)).save(any());
         assertEquals(5, count);
@@ -42,7 +44,7 @@ class CsvIngestionServiceTest {
     void ingest_shouldSkipDuplicates() {
         when(poiRepository.findByOsmId(anyString())).thenReturn(Optional.of(new Poi()));
 
-        int count = service.ingestFromCsv("data/mock_poi.csv");
+        int count = service().ingestFromCsv("data/mock_poi.csv");
 
         verify(poiRepository, never()).save(any());
         assertEquals(0, count);
@@ -52,6 +54,6 @@ class CsvIngestionServiceTest {
     void ingest_missingFile_throws() {
         assertThrows(
                 RuntimeException.class,
-                () -> service.ingestFromCsv("data/does_not_exist.csv"));
+                () -> service().ingestFromCsv("data/does_not_exist.csv"));
     }
 }

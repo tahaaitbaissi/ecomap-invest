@@ -1,6 +1,12 @@
 package com.example.backend.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
@@ -21,6 +27,21 @@ public class RestClientConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper m = new ObjectMapper();
+        m.registerModule(new JavaTimeModule());
+        m.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        return m;
+    }
+
+    @Bean(name = "nominatimExecutor")
+    public Executor nominatimExecutor() {
+        int pool = Math.max(2, Runtime.getRuntime().availableProcessors());
+        return new ThreadPoolExecutor(
+                pool,
+                pool,
+                30L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(512),
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 }

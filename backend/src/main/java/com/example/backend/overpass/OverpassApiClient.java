@@ -39,16 +39,19 @@ public class OverpassApiClient {
     private final int fullRetryPasses;
     private final RestTemplate overpassRestTemplate;
     private final ObjectMapper objectMapper;
+    private final OverpassResilientHttpClient resilientHttpClient;
 
     public OverpassApiClient(
             @Qualifier(OverpassRestTemplateConfig.OVERPASS_REST_TEMPLATE) RestTemplate overpassRestTemplate,
             ObjectMapper objectMapper,
+            OverpassResilientHttpClient resilientHttpClient,
             @Value(
                     "${app.overpass.interpreter-urls:https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.openstreetmap.fr/api/interpreter}")
                     String interpreterUrls,
             @Value("${app.overpass.full-retry-passes:3}") int fullRetryPasses) {
         this.overpassRestTemplate = overpassRestTemplate;
         this.objectMapper = objectMapper;
+        this.resilientHttpClient = resilientHttpClient;
         this.interpreterUrls = parseUrls(interpreterUrls);
         this.fullRetryPasses = Math.max(1, fullRetryPasses);
     }
@@ -93,14 +96,13 @@ public class OverpassApiClient {
         for (int pass = 0; pass < fullRetryPasses; pass++) {
             for (String url : interpreterUrls) {
                 try {
-                    ResponseEntity<String> response = overpassRestTemplate.postForEntity(url, request, String.class);
-                    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                        if (response.getBody().contains("runtime error")
-                                && response.getBody().contains("timeout")) {
+                    String body = resilientHttpClient.postForBody(url, request).toCompletableFuture().join();
+                    if (body != null && !body.isBlank()) {
+                        if (body.contains("runtime error") && body.contains("timeout")) {
                             log.warn("Overpass busy/timeout on {} (body), trying next", url);
                             continue;
                         }
-                        return parseElements(response.getBody());
+                        return parseElements(body);
                     }
                 } catch (HttpStatusCodeException ex) {
                     if (isRetryableStatus(ex.getStatusCode())) {
@@ -114,6 +116,8 @@ public class OverpassApiClient {
                     last = ex;
                 } catch (RestClientException ex) {
                     last = ex;
+                } catch (RuntimeException ex) {
+                    last = ex;
                 }
             }
             if (pass < fullRetryPasses - 1) {
@@ -123,14 +127,15 @@ public class OverpassApiClient {
                     Thread.sleep(waitMs);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new IllegalStateException("Interrupted while waiting to retry Overpass", e);
+                    return List.of();
                 }
             }
         }
         if (last != null) {
-            throw new IllegalStateException("Overpass request failed on all mirrors after retries: " + last.getMessage(), last);
+            log.warn("Overpass request failed on all mirrors after retries: {}", last.getMessage());
         }
-        throw new IllegalStateException("Overpass request failed: no response");
+        // Graceful degradation: batch can continue with partial categories
+        return List.of();
     }
 
     private static boolean isRetryableStatus(HttpStatusCode code) {

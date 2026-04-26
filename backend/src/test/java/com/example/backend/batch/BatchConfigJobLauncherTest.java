@@ -12,6 +12,8 @@ import com.example.backend.repositories.PoiRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.parameters.JobParametersBuilder;
@@ -42,7 +44,7 @@ class BatchConfigJobLauncherTest {
         var jobRepository = new ResourcelessJobRepository();
         var tx = new ResourcelessTransactionManager();
         var reader = new OverpassItemReader(overpass);
-        var processor = new PoiItemProcessor(poiRepo);
+        var processor = new PoiItemProcessor(poiRepo, new GeometryFactory(new PrecisionModel(), 4326));
         var writer = new PoiItemWriter(poiRepo);
 
         var step =

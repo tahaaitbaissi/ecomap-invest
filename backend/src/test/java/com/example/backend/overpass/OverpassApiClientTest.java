@@ -16,6 +16,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.client.response.MockRestResponseCreators;
 import org.springframework.web.client.RestTemplate;
+import java.util.concurrent.Executor;
 
 class OverpassApiClientTest {
 
@@ -26,9 +27,13 @@ class OverpassApiClientTest {
     void setUp() {
         RestTemplate rt = new RestTemplate();
         mockServer = MockRestServiceServer.bindTo(rt).build();
+        Executor direct = Runnable::run;
+        OverpassResilientHttpClient resilient =
+                new OverpassResilientHttpClient(rt, direct);
         client = new OverpassApiClient(
                 rt,
                 new ObjectMapper(),
+                resilient,
                 "https://overpass-api.de/api/interpreter",
                 3);
     }
@@ -91,15 +96,18 @@ class OverpassApiClientTest {
     void fetchByTagAndBBox_failsAfterServiceUnavailable() {
         RestTemplate rt = new RestTemplate();
         MockRestServiceServer s = MockRestServiceServer.bindTo(rt).build();
+        Executor direct = Runnable::run;
+        OverpassResilientHttpClient resilient =
+                new OverpassResilientHttpClient(rt, direct);
         OverpassApiClient c =
-                new OverpassApiClient(rt, new com.fasterxml.jackson.databind.ObjectMapper(), "https://z.test/api", 1);
+                new OverpassApiClient(rt, new com.fasterxml.jackson.databind.ObjectMapper(), resilient, "https://z.test/api", 1);
         s.expect(
                         MockRestRequestMatchers.requestTo("https://z.test/api"))
                 .andExpect(MockRestRequestMatchers.method(HttpMethod.POST))
                 .andRespond(
                         request -> new MockClientHttpResponse("busy".getBytes(), HttpStatus.SERVICE_UNAVAILABLE));
-        assertThrows(
-                IllegalStateException.class, () -> c.fetchByTagAndBBox("a=b", new BoundingBox(0, 0, 1, 1)));
+        var out = c.fetchByTagAndBBox("a=b", new BoundingBox(0, 0, 1, 1));
+        assertTrue(out.isEmpty());
         s.verify();
     }
 }

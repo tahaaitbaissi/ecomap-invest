@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CsvIngestionService {
 
     private final PoiRepository poiRepository;
-
-    private static final GeometryFactory GEO_FACTORY =
-            new GeometryFactory(new PrecisionModel(), 4326);
+    private final GeometryFactory geometryFactory;
 
     @Transactional
     public int ingestFromCsv(String classpathFile) {
@@ -54,7 +51,7 @@ public class CsvIngestionService {
                     continue;
                 }
 
-                Point point = GEO_FACTORY.createPoint(
+                Point point = geometryFactory.createPoint(
                         new Coordinate(rec.getLongitude(), rec.getLatitude())
                 );
 

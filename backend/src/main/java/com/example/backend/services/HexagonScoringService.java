@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.HexagonMapResponse;
 import com.example.backend.entities.Demographics;
 import com.example.backend.entities.DynamicProfile;
@@ -88,6 +89,7 @@ public class HexagonScoringService {
     }
 
     @Transactional(readOnly = true)
+    @Audited(action = "GET_SCORE", persist = false)
     public List<HexagonMapResponse> getHexagonsInBbox(String bbox, UUID profileId) {
         Bbox b = parseBbox(bbox);
         validateBbox(b);

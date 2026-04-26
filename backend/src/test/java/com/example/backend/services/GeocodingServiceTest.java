@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
+import java.util.concurrent.Executor;
+
 class GeocodingServiceTest {
 
     private MockWebServer server;
@@ -24,7 +26,8 @@ class GeocodingServiceTest {
                 .baseUrl("http://127.0.0.1:" + server.getPort())
                 .defaultHeader("User-Agent", "test")
                 .build();
-        service = new NominatimSearchClient(c);
+        Executor direct = Runnable::run;
+        service = new NominatimSearchClient(c, direct);
     }
 
     @AfterEach
@@ -48,7 +51,7 @@ class GeocodingServiceTest {
                 .addHeader("Content-Type", "application/json")
                 .setBody(body));
 
-        var r = service.fetch("cas");
+        var r = service.fetchAsync("cas").toCompletableFuture().join();
         assertEquals(1, r.size());
         assertEquals("Casablanca, MA", r.get(0).displayName());
         assertEquals(33.5, r.get(0).lat());
@@ -59,7 +62,7 @@ class GeocodingServiceTest {
     void search_nullBody_returnsEmpty() {
         server.enqueue(
                 new MockResponse().addHeader("Content-Type", "application/json").setBody("null"));
-        var r = service.fetch("x");
+        var r = service.fetchAsync("x").toCompletableFuture().join();
         assertTrue(r.isEmpty());
     }
 }
