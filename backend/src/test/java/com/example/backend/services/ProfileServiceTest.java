@@ -23,9 +23,10 @@ class ProfileServiceTest {
     @Test
     void notifyProfileGeneratedAfterPersist_publishes() {
         UUID pid = UUID.randomUUID();
-        profileService.notifyProfileGeneratedAfterPersist(pid, 1L, "q");
+        UUID uid = UUID.randomUUID();
+        profileService.notifyProfileGeneratedAfterPersist(pid, uid, "q");
         verify(profileEventPublisher)
                 .publishProfileGenerated(
-                        eq(pid), eq(1L), eq("q"));
+                        eq(pid), eq(uid), eq("q"));
     }
 }

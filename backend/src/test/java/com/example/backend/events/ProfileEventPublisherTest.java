@@ -25,12 +25,13 @@ class ProfileEventPublisherTest {
     @Test
     void publishProfileGenerated_sendsEvent() {
         var pid = UUID.randomUUID();
-        profileEventPublisher.publishProfileGenerated(pid, 42L, "q1");
+        var uid = UUID.randomUUID();
+        profileEventPublisher.publishProfileGenerated(pid, uid, "q1");
         var cap = ArgumentCaptor.forClass(ProfileGeneratedEvent.class);
         verify(applicationEventPublisher).publishEvent(cap.capture());
         ProfileGeneratedEvent e = cap.getValue();
         assertEquals(pid, e.getProfileId());
-        assertEquals(42L, e.getUserId());
+        assertEquals(uid, e.getUserId());
         assertEquals("q1", e.getQuery());
         assertNotNull(e.getGeneratedAt());
     }

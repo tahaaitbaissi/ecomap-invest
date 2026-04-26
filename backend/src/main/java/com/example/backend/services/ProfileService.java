@@ -17,7 +17,7 @@ public class ProfileService {
     private final ProfileEventPublisher profileEventPublisher;
 
     @Transactional
-    public void notifyProfileGeneratedAfterPersist(UUID profileId, Long userId, String query) {
+    public void notifyProfileGeneratedAfterPersist(UUID profileId, UUID userId, String query) {
         profileEventPublisher.publishProfileGenerated(profileId, userId, query);
     }
 }

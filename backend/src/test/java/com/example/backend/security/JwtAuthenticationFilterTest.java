@@ -25,7 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 class JwtAuthenticationFilterTest {
 
     @Mock
-    private JWTUtil jwtUtil;
+    private JwtService jwtService;
 
     @Mock
     private LoginService loginService;
@@ -38,7 +38,7 @@ class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        filter = new JwtAuthenticationFilter(jwtUtil, loginService);
+        filter = new JwtAuthenticationFilter(jwtService, loginService);
     }
 
     @AfterEach
@@ -60,7 +60,7 @@ class JwtAuthenticationFilterTest {
         var req = new MockHttpServletRequest();
         req.addHeader("Authorization", "Bearer bad");
         var res = new MockHttpServletResponse();
-        when(jwtUtil.getUsernameFromToken("bad")).thenThrow(new RuntimeException("parse"));
+        when(jwtService.extractUsername("bad")).thenThrow(new RuntimeException("parse"));
         filter.doFilterInternal(req, res, filterChain);
         verify(filterChain).doFilter(req, res);
         assertNull(SecurityContextHolder.getContext().getAuthentication());
@@ -71,7 +71,7 @@ class JwtAuthenticationFilterTest {
         var req = new MockHttpServletRequest();
         req.addHeader("Authorization", "Bearer good.tok");
         var res = new MockHttpServletResponse();
-        when(jwtUtil.getUsernameFromToken("good.tok")).thenReturn("a@a.com");
+        when(jwtService.extractUsername("good.tok")).thenReturn("a@a.com");
         UserDetails ud =
                 User.builder()
                         .username("a@a.com")
@@ -79,7 +79,7 @@ class JwtAuthenticationFilterTest {
                         .authorities(Collections.emptyList())
                         .build();
         when(loginService.loadUserByUsername("a@a.com")).thenReturn(ud);
-        when(jwtUtil.validateToken("good.tok", "a@a.com")).thenReturn(true);
+        when(jwtService.validateToken("good.tok", ud)).thenReturn(true);
 
         filter.doFilterInternal(req, res, filterChain);
 

@@ -22,7 +22,7 @@ public class DynamicProfile {
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId;
+    private UUID userId;
 
     @Column(name = "user_query", nullable = false, columnDefinition = "TEXT")
     private String userQuery;

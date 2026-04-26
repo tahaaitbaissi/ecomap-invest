@@ -1,15 +1,14 @@
 package com.example.backend.controllers;
 
-import com.example.backend.controllers.dto.ProfileResponse;
+import com.example.backend.controllers.dto.UserProfileDTO;
 import com.example.backend.controllers.dto.UpdateProfileRequest;
 import com.example.backend.entities.User;
 import com.example.backend.services.UserService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,31 +27,25 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ProfileResponse> getMyProfile(Authentication authentication) {
-        User user = userService.getUserByEmail(authentication.getName());
-        return ResponseEntity.ok(toProfileResponse(user));
+    public ResponseEntity<UserProfileDTO> getMyProfile(@AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails principal) {
+        User user = userService.getUserByEmail(principal.getUsername());
+        return ResponseEntity.ok(toUserProfileDto(user));
     }
 
     @PutMapping("/me")
-    public ResponseEntity<?> updateMyProfile(Authentication authentication,
+    public ResponseEntity<UserProfileDTO> updateMyProfile(@AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails principal,
                                              @Valid @RequestBody UpdateProfileRequest request) {
-        try {
-            User updated = userService.updateProfile(authentication.getName(), request);
-            return ResponseEntity.ok(toProfileResponse(updated));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
-        }
+        User updated = userService.updateProfile(principal.getUsername(), request);
+        return ResponseEntity.ok(toUserProfileDto(updated));
     }
 
-    private ProfileResponse toProfileResponse(User user) {
-        return new ProfileResponse(
+    private UserProfileDTO toUserProfileDto(User user) {
+        return new UserProfileDTO(
                 user.getId(),
-                user.getUsername(),
                 user.getEmail(),
-                user.getName(),
-                user.getRole()
+                user.getCompanyName(),
+                user.getRole(),
+                user.getCreatedAt()
         );
     }
 }

@@ -6,5 +6,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DynamicProfileRepository extends JpaRepository<DynamicProfile, UUID> {
-    List<DynamicProfile> findByUserIdOrderByGeneratedAtDesc(Long userId);
+    List<DynamicProfile> findByUserIdOrderByGeneratedAtDesc(UUID userId);
 }

@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record DynamicProfileResponse(
         UUID id,
-        Long userId,
+        UUID userId,
         String userQuery,
         Instant generatedAt,
         List<TagWeightDto> drivers,

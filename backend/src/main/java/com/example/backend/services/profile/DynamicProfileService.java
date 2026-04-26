@@ -90,7 +90,7 @@ public class DynamicProfileService {
         User user = userService.getUserByEmail(userEmail);
         DynamicProfile p = dynamicProfileRepository.findById(profileId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found"));
-        if (p.getUserId() == null || user.getId() != p.getUserId()) {
+        if (p.getUserId() == null || !p.getUserId().equals(user.getId())) {
             throw new AccessDeniedException("You do not own this profile");
         }
         return toResponse(p);

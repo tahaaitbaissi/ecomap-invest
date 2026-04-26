@@ -9,32 +9,48 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
-@SpringBootTest(classes = JWTUtil.class)
+@SpringBootTest(classes = JwtService.class)
 @TestPropertySource(
         properties = {
-            "app.security.jwt.secret=TestJwtSecretKeyForUnitAndIntegrationTestsMustBe256BitLongString!!",
-            "app.security.jwt.expiration=3600000"
+            "jwt.secret=TestJwtSecretKeyForUnitAndIntegrationTestsMustBe256BitLongString!!",
+            "jwt.expiration=3600000"
         })
 class JWTUtilTest {
 
     @Autowired
-    private JWTUtil jwtUtil;
+    private JwtService jwtService;
 
     @Test
     void generateAndValidate_roundTrip() {
-        String token = jwtUtil.generateToken("user@example.com");
-        assertTrue(jwtUtil.validateToken(token, "user@example.com"));
-        assertEquals("user@example.com", jwtUtil.getUsernameFromToken(token));
+        var ud = org.springframework.security.core.userdetails.User.withUsername("user@example.com")
+                .password("x")
+                .authorities("ROLE_INVESTOR")
+                .build();
+        String token = jwtService.generateToken(ud);
+        assertTrue(jwtService.validateToken(token, ud));
+        assertEquals("user@example.com", jwtService.extractUsername(token));
     }
 
     @Test
     void validate_failsOnWrongSubject() {
-        String token = jwtUtil.generateToken("a@a.com");
-        assertFalse(jwtUtil.validateToken(token, "b@b.com"));
+        var udA = org.springframework.security.core.userdetails.User.withUsername("a@a.com")
+                .password("x")
+                .authorities("ROLE_INVESTOR")
+                .build();
+        var udB = org.springframework.security.core.userdetails.User.withUsername("b@b.com")
+                .password("x")
+                .authorities("ROLE_INVESTOR")
+                .build();
+        String token = jwtService.generateToken(udA);
+        assertFalse(jwtService.validateToken(token, udB));
     }
 
     @Test
     void validate_failsOnGarbage() {
-        assertFalse(jwtUtil.validateToken("not.a.jwt", "user@example.com"));
+        var ud = org.springframework.security.core.userdetails.User.withUsername("user@example.com")
+                .password("x")
+                .authorities("ROLE_INVESTOR")
+                .build();
+        assertFalse(jwtService.validateToken("not.a.jwt", ud));
     }
 }

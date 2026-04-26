@@ -36,7 +36,7 @@ class ScoringCacheInvalidationListenerTest {
         when(cursor.next()).thenReturn("score:" + profileId + ":99");
         when(stringRedisTemplate.delete(anyList())).thenReturn(1L);
 
-        listener.onProfileGenerated(new ProfileGeneratedEvent(this, profileId, 1L, "q", Instant.now()));
+        listener.onProfileGenerated(new ProfileGeneratedEvent(this, profileId, UUID.randomUUID(), "q", Instant.now()));
 
         verify(stringRedisTemplate).scan(any(ScanOptions.class));
         verify(stringRedisTemplate).delete(anyList());

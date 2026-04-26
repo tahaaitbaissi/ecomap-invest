@@ -33,10 +33,9 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByEmail("admin@example.com")) {
             User admin = new User();
             admin.setEmail("admin@example.com");
-            admin.setUsername("admin");
-            admin.setName("Administrator");
             admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setRole(Role.ADMIN);
+            admin.setRole(Role.ROLE_ADMIN.name());
+            admin.setCompanyName("EcoMap Admin");
             userRepository.save(admin);
             System.out.println("=> Admin user created: admin@example.com / admin123");
         }
@@ -45,10 +44,9 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByEmail("user@example.com")) {
             User testUser = new User();
             testUser.setEmail("user@example.com");
-            testUser.setUsername("testuser");
-            testUser.setName("Test User");
             testUser.setPassword(passwordEncoder.encode("user123"));
-            testUser.setRole(Role.USER);
+            testUser.setRole(Role.ROLE_INVESTOR.name());
+            testUser.setCompanyName("Test Company");
             userRepository.save(testUser);
             System.out.println("=> Test user created: user@example.com / user123");
         }

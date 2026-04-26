@@ -34,14 +34,14 @@ class ProfileControllerTest {
 
     private static UsernamePasswordAuthenticationToken auth() {
         return new UsernamePasswordAuthenticationToken(
-                "a@a.com", "x", List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                "a@a.com", "x", List.of(new SimpleGrantedAuthority("ROLE_INVESTOR")));
     }
 
     @Test
     void generate_returns201() {
         DynamicProfileResponse created = new DynamicProfileResponse(
                 UUID.randomUUID(),
-                1L,
+                UUID.randomUUID(),
                 "q",
                 Instant.now(),
                 List.of(new TagWeightDto("amenity=school", 1.0)),

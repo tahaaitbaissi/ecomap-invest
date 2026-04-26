@@ -31,7 +31,7 @@ class LoginServiceTest {
         User u = new User();
         u.setEmail("e@e.com");
         u.setPassword("hash");
-        u.setRole(Role.USER);
+        u.setRole(Role.ROLE_INVESTOR.name());
         when(userService.getUserByEmail("e@e.com")).thenReturn(u);
 
         UserDetails d = loginService.loadUserByUsername("e@e.com");
@@ -40,7 +40,7 @@ class LoginServiceTest {
         assertNotNull(
                 d.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
-                        .filter("ROLE_USER"::equals)
+                        .filter("ROLE_INVESTOR"::equals)
                         .findFirst()
                         .orElse(null));
         verify(userService).getUserByEmail("e@e.com");

@@ -15,7 +15,7 @@ public class ProfileEventPublisher {
     /**
      * Call after a dynamic profile is persisted (F7). Triggers cache invalidation listeners.
      */
-    public void publishProfileGenerated(UUID profileId, Long userId, String query) {
+    public void publishProfileGenerated(UUID profileId, UUID userId, String query) {
         applicationEventPublisher.publishEvent(
                 new ProfileGeneratedEvent(this, profileId, userId, query, Instant.now()));
     }

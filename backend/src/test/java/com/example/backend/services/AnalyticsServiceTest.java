@@ -44,13 +44,13 @@ class AnalyticsServiceTest {
                 poiRepository, demographicsRepository, dynamicProfileRepository, userService);
 
         User u = new User();
-        u.setId(1L);
+        u.setId(UUID.randomUUID());
         when(userService.getUserByEmail("a@a.com")).thenReturn(u);
 
         UUID pid = UUID.randomUUID();
         DynamicProfile p = new DynamicProfile();
         p.setId(pid);
-        p.setUserId(2L);
+        p.setUserId(UUID.randomUUID());
         p.setGeneratedAt(Instant.now());
         p.setDriversConfig(new ObjectMapper().valueToTree(List.of()));
         p.setCompetitorsConfig(new ObjectMapper().valueToTree(List.of()));
@@ -67,13 +67,14 @@ class AnalyticsServiceTest {
                 poiRepository, demographicsRepository, dynamicProfileRepository, userService);
 
         User u = new User();
-        u.setId(7L);
+        UUID uid = UUID.randomUUID();
+        u.setId(uid);
         when(userService.getUserByEmail("a@a.com")).thenReturn(u);
 
         UUID pid = UUID.randomUUID();
         DynamicProfile p = new DynamicProfile();
         p.setId(pid);
-        p.setUserId(7L);
+        p.setUserId(uid);
         p.setGeneratedAt(Instant.now());
         ObjectMapper om = new ObjectMapper();
         JsonNode drivers = om.readTree("[{\"tag\":\"amenity=school\",\"weight\":1.0}]");

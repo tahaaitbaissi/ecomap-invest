@@ -4,26 +4,26 @@ import com.example.backend.controllers.dto.UpdateProfileRequest;
 import com.example.backend.entities.User;
 import com.example.backend.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
     private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserService(UserRepository ur) {
-        if (ur == null)
+    public UserService(UserRepository ur, PasswordEncoder passwordEncoder) {
+        if (ur == null) {
             throw new IllegalArgumentException("User Repository cannot be null");
+        }
         userRepository = ur;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
-    }
-
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
     public User updateProfile(String currentEmail, UpdateProfileRequest request) {
@@ -31,43 +31,26 @@ public class UserService {
 
         boolean hasChanges = false;
 
-        if (request.username() != null) {
-            String newUsername = request.username().trim();
-            if (newUsername.isEmpty()) {
-                throw new IllegalArgumentException("Username cannot be blank");
+        if (request.companyName() != null) {
+            String newCompany = request.companyName().trim();
+            if (newCompany.isEmpty()) {
+                throw new IllegalArgumentException("Company name cannot be blank");
             }
-            if (!newUsername.equals(user.getUsername())) {
-                if (userRepository.existsByUsername(newUsername)) {
-                    throw new IllegalStateException("Username already used");
-                }
-                user.setUsername(newUsername);
+            if (!newCompany.equals(user.getCompanyName())) {
+                user.setCompanyName(newCompany);
                 hasChanges = true;
             }
         }
 
-        if (request.email() != null) {
-            String newEmail = request.email().trim();
-            if (newEmail.isEmpty()) {
-                throw new IllegalArgumentException("Email cannot be blank");
+        if (request.newPassword() != null && !request.newPassword().isBlank()) {
+            if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+                throw new IllegalArgumentException("Current password is required to set a new password");
             }
-            if (!newEmail.equals(user.getEmail())) {
-                if (userRepository.existsByEmail(newEmail)) {
-                    throw new IllegalStateException("Email already used");
-                }
-                user.setEmail(newEmail);
-                hasChanges = true;
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                throw new IllegalArgumentException("Current password is incorrect");
             }
-        }
-
-        if (request.name() != null) {
-            String newName = request.name().trim();
-            if (newName.isEmpty()) {
-                throw new IllegalArgumentException("Name cannot be blank");
-            }
-            if (!newName.equals(user.getName())) {
-                user.setName(newName);
-                hasChanges = true;
-            }
+            user.setPassword(passwordEncoder.encode(request.newPassword()));
+            hasChanges = true;
         }
 
         if (!hasChanges) {

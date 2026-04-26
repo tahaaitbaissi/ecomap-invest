@@ -50,7 +50,8 @@ class DynamicProfileServiceTest {
                 profileService);
 
         User u = new User();
-        u.setId(7L);
+        UUID userId = UUID.randomUUID();
+        u.setId(userId);
         u.setEmail("a@a.com");
         when(userService.getUserByEmail("a@a.com")).thenReturn(u);
 
@@ -63,10 +64,10 @@ class DynamicProfileServiceTest {
                 .thenAnswer(inv -> inv.getArgument(0));
 
         var res = dynamicProfileService.generateForUserEmail("a@a.com", "hello");
-        assertEquals(7L, res.userId());
+        assertEquals(userId, res.userId());
         assertEquals("hello", res.userQuery());
 
-        verify(profileService).notifyProfileGeneratedAfterPersist(any(UUID.class), eq(7L), eq("hello"));
+        verify(profileService).notifyProfileGeneratedAfterPersist(any(UUID.class), eq(userId), eq("hello"));
     }
 
     @Test
@@ -79,12 +80,12 @@ class DynamicProfileServiceTest {
                 profileService);
 
         User u = new User();
-        u.setId(1L);
+        u.setId(UUID.randomUUID());
         when(userService.getUserByEmail("a@a.com")).thenReturn(u);
 
         DynamicProfile p = new DynamicProfile();
         p.setId(UUID.randomUUID());
-        p.setUserId(2L);
+        p.setUserId(UUID.randomUUID());
         p.setUserQuery("q");
         p.setGeneratedAt(Instant.now());
 

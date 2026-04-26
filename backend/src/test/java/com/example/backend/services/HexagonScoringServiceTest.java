@@ -138,7 +138,7 @@ class HexagonScoringServiceTest {
         comp.add(c1);
         DynamicProfile prof = new DynamicProfile();
         prof.setId(UUID.randomUUID());
-        prof.setUserId(1L);
+        prof.setUserId(UUID.randomUUID());
         prof.setUserQuery("q");
         prof.setDriversConfig(drivers);
         prof.setCompetitorsConfig(comp);

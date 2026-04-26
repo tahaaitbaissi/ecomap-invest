@@ -48,7 +48,7 @@ public class AnalyticsService {
         User user = userService.getUserByEmail(userEmail);
         DynamicProfile profile = dynamicProfileRepository.findById(profileId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found"));
-        if (profile.getUserId() == null || user.getId() != profile.getUserId()) {
+        if (profile.getUserId() == null || !profile.getUserId().equals(user.getId())) {
             throw new AccessDeniedException("You do not own this profile");
         }
 

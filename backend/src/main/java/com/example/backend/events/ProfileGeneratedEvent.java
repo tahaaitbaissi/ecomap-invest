@@ -7,11 +7,11 @@ import org.springframework.context.ApplicationEvent;
 public class ProfileGeneratedEvent extends ApplicationEvent {
 
     private final UUID profileId;
-    private final Long userId;
+    private final UUID userId;
     private final String query;
     private final Instant generatedAt;
 
-    public ProfileGeneratedEvent(Object source, UUID profileId, Long userId, String query, Instant generatedAt) {
+    public ProfileGeneratedEvent(Object source, UUID profileId, UUID userId, String query, Instant generatedAt) {
         super(source);
         this.profileId = profileId;
         this.userId = userId;
@@ -23,7 +23,7 @@ public class ProfileGeneratedEvent extends ApplicationEvent {
         return profileId;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 

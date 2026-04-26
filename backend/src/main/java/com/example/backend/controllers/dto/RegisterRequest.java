@@ -2,11 +2,14 @@ package com.example.backend.controllers.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
-        @NotBlank String username,
         @Email @NotBlank String email,
-        @NotBlank String name,
-        @NotBlank String password
+        @Size(min = 8)
+        @Pattern(regexp = "(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*")
+        @NotBlank String password,
+        @NotBlank String companyName
 ) {
 }

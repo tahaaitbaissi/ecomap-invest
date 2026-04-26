@@ -78,6 +78,11 @@ app:
       # Expiratio    n du token en millisecondes (Ex: 86400000 = 24 heures)
       expiration: 86400000
 
+# Task list compatibility keys (F1.2.1)
+jwt:
+  secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
+  expiration: 86400000
+
   # Nœud RMI distant (calcul de score — Systèmes distribués)
   rmi:
     scoring:
