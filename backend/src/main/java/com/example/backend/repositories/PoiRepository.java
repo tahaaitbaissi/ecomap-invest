@@ -88,4 +88,31 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
     long countAllNearby(@Param("latitude") double latitude,
                         @Param("longitude") double longitude,
                         @Param("radiusMeters") double radiusMeters);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM poi p
+            JOIN h3_hexagon h ON h.h3_index = :h3Index
+            WHERE p.type_tag = :typeTag
+              AND ST_Within(p.location, h.boundary)
+            """, nativeQuery = true)
+    long countByTypeTagWithinHex(@Param("typeTag") String typeTag, @Param("h3Index") String h3Index);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM poi p
+            JOIN h3_hexagon h ON h.h3_index = :h3Index
+            WHERE ST_Within(p.location, h.boundary)
+            """, nativeQuery = true)
+    long countAllWithinHex(@Param("h3Index") String h3Index);
+
+    @Query(value = """
+            SELECT p.*
+            FROM poi p
+            JOIN h3_hexagon h ON h.h3_index = :h3Index
+            WHERE ST_Within(p.location, h.boundary)
+            ORDER BY p.name ASC NULLS LAST, p.osm_id ASC NULLS LAST
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Poi> findTopPoisWithinHex(@Param("h3Index") String h3Index, @Param("limit") int limit);
 }
