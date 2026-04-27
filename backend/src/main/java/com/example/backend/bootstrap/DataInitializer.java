@@ -5,6 +5,7 @@ import com.example.backend.entities.User;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.repositories.UserRepository;
 import com.example.backend.services.CsvIngestionService;
+import java.sql.Timestamp;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setRole(Role.ROLE_ADMIN.name());
             admin.setCompanyName("EcoMap Admin");
+            admin.setCreatedAt(new Timestamp(System.currentTimeMillis()));
             userRepository.save(admin);
             System.out.println("=> Admin user created: admin@example.com / admin123");
         }
@@ -47,6 +49,7 @@ public class DataInitializer implements CommandLineRunner {
             testUser.setPassword(passwordEncoder.encode("user123"));
             testUser.setRole(Role.ROLE_INVESTOR.name());
             testUser.setCompanyName("Test Company");
+            testUser.setCreatedAt(new Timestamp(System.currentTimeMillis()));
             userRepository.save(testUser);
             System.out.println("=> Test user created: user@example.com / user123");
         }

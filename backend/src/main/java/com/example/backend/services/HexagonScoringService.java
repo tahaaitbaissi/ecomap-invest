@@ -38,7 +38,7 @@ public class HexagonScoringService {
     @Nullable
     private final StringRedisTemplate stringRedisTemplate;
 
-    @Value("${app.poi.driver-categories}")
+    @Value("${app.poi.driver-categories:category=school,category=university,category=office}")
     private String driverCategoriesConfig;
 
     @Value("${app.poi.radius-drivers-km:2.0}")

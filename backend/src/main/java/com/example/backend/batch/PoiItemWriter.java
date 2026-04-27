@@ -2,6 +2,7 @@ package com.example.backend.batch;
 
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -26,12 +27,20 @@ public class PoiItemWriter implements ItemWriter<Poi> {
     @Override
     @Transactional
     public void write(Chunk<? extends Poi> items) {
-        for (Poi poi : items) {
-            try {
-                poiRepository.save(poi);
-                written++;
-            } catch (DataIntegrityViolationException e) {
-                skipped++;
+        try {
+            List<Poi> list = List.copyOf(items.getItems());
+            poiRepository.saveAll(list);
+            written += list.size();
+        } catch (DataIntegrityViolationException e) {
+            // Unique constraint on osm_id can trip on concurrent/import duplicates.
+            // Fall back to per-item saves to count skips precisely.
+            for (Poi poi : items) {
+                try {
+                    poiRepository.save(poi);
+                    written++;
+                } catch (DataIntegrityViolationException ex) {
+                    skipped++;
+                }
             }
         }
         log.info("Batch — écrits: {}, skippés: {}", written, skipped);

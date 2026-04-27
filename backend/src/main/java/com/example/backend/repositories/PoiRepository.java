@@ -26,6 +26,28 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
                                    @Param("neLng") double neLng,
                                    @Param("neLat") double neLat);
 
+    @Query(value = """
+            SELECT *
+            FROM poi p
+            WHERE ST_Within(
+                p.location,
+                ST_MakeEnvelope(:minX, :minY, :maxX, :maxY, 4326)
+            )
+            LIMIT 2000
+            """, nativeQuery = true)
+    List<Poi> findByBoundingBox(@Param("minX") double minX,
+                                @Param("minY") double minY,
+                                @Param("maxX") double maxX,
+                                @Param("maxY") double maxY);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM poi p
+            WHERE p.type_tag = :typeTag
+              AND ST_Within(p.location, ST_GeomFromText(:wkt, 4326))
+            """, nativeQuery = true)
+    int countByTypeTagAndWithin(@Param("typeTag") String typeTag, @Param("wkt") String wkt);
+
     /**
      * Find all POIs within a radius (in kilometers) of a given location.
      * @param latitude center latitude (WGS84)

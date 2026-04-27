@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.sql.Timestamp;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,7 +15,7 @@ import lombok.Setter;
 public class Demographics {
 
     @Id
-    @Column(name = "h3_index", length = 32)
+    @Column(name = "h3_index", length = 15)
     private String h3Index;
 
     @Column(name = "population_density")
@@ -22,4 +23,7 @@ public class Demographics {
 
     @Column(name = "avg_income")
     private Double avgIncome;
+
+    @Column(name = "last_updated")
+    private Timestamp lastUpdated;
 }

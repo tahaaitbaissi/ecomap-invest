@@ -102,7 +102,7 @@ public class OverpassApiClient {
                             log.warn("Overpass busy/timeout on {} (body), trying next", url);
                             continue;
                         }
-                        return parseElements(body);
+                        return parseElements(body, tag.trim());
                     }
                 } catch (HttpStatusCodeException ex) {
                     if (isRetryableStatus(ex.getStatusCode())) {
@@ -153,7 +153,7 @@ public class OverpassApiClient {
                 Double.toString(bbox.east()));
     }
 
-    private List<OsmElement> parseElements(String jsonBody) {
+    private List<OsmElement> parseElements(String jsonBody, String sourceTag) {
         try {
             JsonNode root = objectMapper.readTree(jsonBody);
             JsonNode elements = root.path("elements");
@@ -172,7 +172,7 @@ public class OverpassApiClient {
                 double lat = el.get("lat").asDouble();
                 double lon = el.get("lon").asDouble();
                 Map<String, String> tags = parseTags(el.path("tags"));
-                out.add(new OsmElement(id, lat, lon, tags));
+                out.add(new OsmElement(id, lat, lon, tags, sourceTag));
             }
             return out;
         } catch (Exception e) {

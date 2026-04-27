@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +20,12 @@ public class AuditLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "audit_id", nullable = false)
+    private UUID auditId;
+
+    @Column(name = "user_id")
+    private UUID userId;
 
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;

@@ -29,7 +29,7 @@ class PoiItemProcessorTest {
     void process_duplicate_returnsNull() throws Exception {
         PoiItemProcessor processor = new PoiItemProcessor(poiRepository, gf());
         when(poiRepository.existsByOsmId("99")).thenReturn(true);
-        var el = new OsmElement(99L, 33.0, -7.0, Map.of("name", "Cafe", "amenity", "cafe"));
+        var el = new OsmElement(99L, 33.0, -7.0, Map.of("name", "Cafe", "amenity", "cafe"), "amenity=cafe");
         assertNull(processor.process(el));
     }
 
@@ -37,7 +37,7 @@ class PoiItemProcessorTest {
     void process_new_buildsPoi() throws Exception {
         PoiItemProcessor processor = new PoiItemProcessor(poiRepository, gf());
         when(poiRepository.existsByOsmId("1")).thenReturn(false);
-        var el = new OsmElement(1L, 33.0, -7.0, Map.of("name", "Cafe", "amenity", "cafe"));
+        var el = new OsmElement(1L, 33.0, -7.0, Map.of("name", "Cafe", "amenity", "cafe"), "amenity=cafe");
         Poi p = processor.process(el);
         assertEquals("1", p.getOsmId());
         assertEquals("Cafe", p.getName());

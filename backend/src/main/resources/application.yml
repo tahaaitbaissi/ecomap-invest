@@ -55,6 +55,8 @@ springdoc:
     job:
       # Do not run batch jobs on startup; use admin API or the scheduler only.
       enabled: false
+    jdbc:
+      initialize-schema: always
 
 # ==========================================
 # 4. INTELLIGENCE ARTIFICIELLE (LangChain4j / Ollama)

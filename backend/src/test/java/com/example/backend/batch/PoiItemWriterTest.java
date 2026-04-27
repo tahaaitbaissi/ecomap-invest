@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,14 +30,15 @@ class PoiItemWriterTest {
         Poi a = new Poi();
         Poi b = new Poi();
         writer.write(Chunk.of(a, b));
-        verify(poiRepository, times(2)).save(any(Poi.class));
+        verify(poiRepository, times(1)).saveAll(any(List.class));
     }
 
     @Test
     void write_dataIntegrity_continues() {
+        when(poiRepository.saveAll(any(List.class)))
+                .thenThrow(new DataIntegrityViolationException("dup"));
         when(poiRepository.save(any(Poi.class)))
-                .thenThrow(new DataIntegrityViolationException("dup"))
-                .thenAnswer(inv -> inv.getArgument(0, Poi.class));
+                .thenThrow(new DataIntegrityViolationException("dup"));
         writer.write(Chunk.of(new Poi(), new Poi()));
         verify(poiRepository, times(2)).save(any(Poi.class));
     }
