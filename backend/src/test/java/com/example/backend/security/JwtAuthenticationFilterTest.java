@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.example.backend.services.LoginService;
 import jakarta.servlet.FilterChain;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -64,6 +67,33 @@ class JwtAuthenticationFilterTest {
         filter.doFilterInternal(req, res, filterChain);
         verify(filterChain).doFilter(req, res);
         assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void validToken_replacesAnonymousPrincipal() throws Exception {
+        var anon =
+                new AnonymousAuthenticationToken("key", "anon", List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS")));
+        SecurityContextHolder.getContext().setAuthentication(anon);
+
+        var req = new MockHttpServletRequest();
+        req.addHeader("Authorization", "Bearer good.tok");
+        var res = new MockHttpServletResponse();
+        when(jwtService.extractUsername("good.tok")).thenReturn("a@a.com");
+        UserDetails ud =
+                User.builder()
+                        .username("a@a.com")
+                        .password("x")
+                        .authorities(Collections.emptyList())
+                        .build();
+        when(loginService.loadUserByUsername("a@a.com")).thenReturn(ud);
+        when(jwtService.validateToken("good.tok", ud)).thenReturn(true);
+
+        filter.doFilterInternal(req, res, filterChain);
+
+        verify(filterChain).doFilter(req, res);
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "a@a.com",
+                SecurityContextHolder.getContext().getAuthentication().getName());
     }
 
     @Test

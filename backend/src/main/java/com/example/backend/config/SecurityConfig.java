@@ -65,6 +65,12 @@ public class SecurityConfig {
                         // Demo: Spring appelle le nœud RMI distant (pas de JWT pour Postman / soutenance)
                         .requestMatchers(HttpMethod.GET, "/api/v1/rmi/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/simulate")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/simulate/**")
+                        .authenticated()
+                        .requestMatchers("/api/v1/investments", "/api/v1/investments/**")
+                        .authenticated()
                         .anyRequest()
                         .authenticated()
                 )
@@ -77,7 +83,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
+        // Patterns: any port on loopback (fixes localhost vs 127.0.0.1 and non-3000 dev ports)
+        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
         config.setExposedHeaders(List.of("Authorization"));
