@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,15 +70,12 @@ public class DynamicProfileService {
     }
 
     @Transactional(readOnly = true)
-    public List<DynamicProfileResponse> listMine(String userEmail) {
+    public Page<DynamicProfileResponse> listMine(String userEmail, Pageable pageable) {
         if (userEmail == null || userEmail.isBlank()) {
             throw new IllegalArgumentException("userEmail must be provided");
         }
         User user = userService.getUserByEmail(userEmail);
-        return dynamicProfileRepository.findByUserIdOrderByGeneratedAtDesc(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return dynamicProfileRepository.findByUserId(user.getId(), pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

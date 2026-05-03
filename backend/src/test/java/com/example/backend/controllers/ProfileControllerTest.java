@@ -10,8 +10,12 @@ import com.example.backend.controllers.dto.GenerateDynamicProfileRequest;
 import com.example.backend.controllers.dto.TagWeightDto;
 import com.example.backend.services.profile.DynamicProfileService;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -59,8 +63,10 @@ class ProfileControllerTest {
 
     @Test
     void my_returns200() {
-        when(dynamicProfileService.listMine(eq("a@a.com"))).thenReturn(List.of());
-        ResponseEntity<?> res = profileController.my(auth());
+        Pageable pageable = PageRequest.of(0, 20);
+        when(dynamicProfileService.listMine(eq("a@a.com"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
+        ResponseEntity<?> res = profileController.my(auth(), pageable);
         assertEquals(HttpStatus.OK, res.getStatusCode());
     }
 }

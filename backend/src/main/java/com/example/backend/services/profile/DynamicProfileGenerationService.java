@@ -13,9 +13,11 @@ public class DynamicProfileGenerationService {
     public static final double MAX_WEIGHT = 1.5;
 
     private final FallbackProfileProvider fallbackProfileProvider;
+    private final LLMService llmService;
 
     public FallbackProfileProvider.ProfileConfig generate(String userQuery) {
-        FallbackProfileProvider.ProfileConfig raw = fallbackProfileProvider.findBestMatch(userQuery);
+        FallbackProfileProvider.ProfileConfig raw =
+                llmService.generateProfileConfig(userQuery).orElseGet(() -> fallbackProfileProvider.findBestMatch(userQuery));
         List<TagWeightDto> drivers = validateAndNormalize(raw.drivers());
         List<TagWeightDto> competitors = validateAndNormalize(raw.competitors());
         if (drivers.isEmpty() || competitors.isEmpty()) {
