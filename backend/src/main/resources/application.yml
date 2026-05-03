@@ -5,12 +5,6 @@ spring:
   application:
     name: ecomap-invest-backend
 
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
   # ==========================================
   # 2. BASE DE DONNÉES SPATIALE (PostgreSQL / PostGIS)
   # ==========================================
@@ -80,11 +74,6 @@ app:
       # Expiratio    n du token en millisecondes (Ex: 86400000 = 24 heures)
       expiration: 86400000
 
-# Task list compatibility keys (F1.2.1)
-jwt:
-  secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
-  expiration: 86400000
-
   # Nœud RMI distant (calcul de score — Systèmes distribués)
   rmi:
     scoring:
@@ -97,6 +86,16 @@ jwt:
   # Saturation scoring: local (JVM formula) vs distributed (RMI via RmiScoringClient pipeline + formula fallback)
   scoring:
     strategy: ${SCORING_STRATEGY:local}
+
+  # LLM profile generation (LangChain4j Ollama; see LLMService + LangChain4jOllamaConfiguration)
+  profile:
+    llm:
+      # 0.0 = strict JSON; general chat may use langchain4j.ollama.chat-model.temperature elsewhere
+      temperature: ${APP_PROFILE_LLM_TEMP:0.0}
+
+  # OSM import batch job + admin API (mirrors spring.batch.job.enabled intent)
+  batch:
+    enabled: ${APP_BATCH_ENABLED:false}
 
   # Public Overpass API (see https://wiki.openstreetmap.org/wiki/Overpass_API)
   overpass:
@@ -141,6 +140,21 @@ jwt:
     cache:
       enabled: ${HEXAGON_SCORE_CACHE_ENABLED:true}
       ttl-seconds: ${HEXAGON_SCORE_CACHE_TTL:3600}
+
+  # What-if simulation: Redis keys sim_score:{sessionId}:{h3}
+  simulation:
+    ttl-seconds: ${APP_SIMULATION_TTL_SECONDS:600}
+
+# Task list compatibility keys (F1.2.1)
+jwt:
+  secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
+  expiration: 86400000
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 # ==========================================
 # 6. RESILIENCE4J (Distributed Systems Resilience Patterns)
@@ -192,6 +206,24 @@ resilience4j:
         automatic-transition-enabled: true
         sliding-window-size: 10
         minimum-number-of-calls: 5
+      ollama:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 30s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 45s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 5
+      profileLlm:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 45s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 3
 
   retry:
     instances:
@@ -222,6 +254,21 @@ resilience4j:
         retry-exceptions:
           - java.rmi.RemoteException
           - java.rmi.NotBoundException
+      ollama:
+        max-attempts: 2
+        wait-duration: 500ms
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+      profileLlm:
+        max-attempts: 2
+        wait-duration: 800ms
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - dev.langchain4j.model.ModelDisabledException
+          - java.lang.RuntimeException
 
   timelimiter:
     instances:
@@ -238,4 +285,10 @@ resilience4j:
         cancel-running-future: true
       rmiScoringPipeline:
         timeout-duration: 5s
+        cancel-running-future: true
+      ollama:
+        timeout-duration: 120s
+        cancel-running-future: true
+      profileLlm:
+        timeout-duration: 120s
         cancel-running-future: true
