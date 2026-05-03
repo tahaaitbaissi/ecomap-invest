@@ -5,6 +5,7 @@ import com.example.backend.entities.User;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.repositories.UserRepository;
 import com.example.backend.services.CsvIngestionService;
+import com.example.backend.services.EnterpriseXlsxIngestionService;
 import java.sql.Timestamp;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,15 +18,19 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final PoiRepository poiRepository;
     private final CsvIngestionService csvIngestionService;
+    private final EnterpriseXlsxIngestionService enterpriseXlsxIngestionService;
 
-    public DataInitializer(UserRepository userRepository,
-                           PasswordEncoder passwordEncoder,
-                           PoiRepository poiRepository,
-                           CsvIngestionService csvIngestionService) {
+    public DataInitializer(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            PoiRepository poiRepository,
+            CsvIngestionService csvIngestionService,
+            EnterpriseXlsxIngestionService enterpriseXlsxIngestionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.poiRepository = poiRepository;
         this.csvIngestionService = csvIngestionService;
+        this.enterpriseXlsxIngestionService = enterpriseXlsxIngestionService;
     }
 
     @Override
@@ -60,6 +65,15 @@ public class DataInitializer implements CommandLineRunner {
                 System.out.println("=> POIs seeded from CSV: " + inserted);
             } catch (Exception e) {
                 System.err.println("=> POI CSV seed skipped (non-fatal): " + e.getMessage());
+            }
+        }
+
+        if (poiRepository.countByOsmIdStartingWith("enterprise:") == 0) {
+            try {
+                int inserted = enterpriseXlsxIngestionService.ingestFromClasspath("data/enterprises.xlsx");
+                System.out.println("=> Enterprises XLSX: " + inserted + " row(s) inserted");
+            } catch (Exception e) {
+                System.err.println("=> Enterprise XLSX seed skipped (non-fatal): " + e.getMessage());
             }
         }
     }

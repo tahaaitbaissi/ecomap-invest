@@ -89,6 +89,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-ChangeMeInProductionAtLeast32Chars123!}
       RMI_SCORING_HOST: rmi-scoring
       RMI_SCORING_REGISTRY_PORT: "1099"
+      # OSM Overpass import: exposes POST /api/v1/admin/batch/trigger and schedules nightly 02:00 import (Casablanca bbox).
+      # Set to false if you only want the 5-row CSV seed and no Overpass traffic.
+      APP_BATCH_ENABLED: ${APP_BATCH_ENABLED:-true}
     ports:
       - "8080:8080"
     networks:

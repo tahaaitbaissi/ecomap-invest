@@ -13,6 +13,8 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
 
     boolean existsByOsmId(String osmId);
 
+    long countByOsmIdStartingWith(String prefix);
+
     @Query(value = """
             SELECT *
             FROM poi p

@@ -2,10 +2,10 @@ package com.example.backend.services;
 
 import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.HexagonMapResponse;
+import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.uber.h3core.H3Core;
-import com.uber.h3core.util.LatLng;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,12 +31,10 @@ public class HexagonScoringService {
     private final H3Core h3;
     private final HexagonRawScoringSupport rawScoringSupport;
     private final HexagonScorePersistenceService hexagonScorePersistenceService;
+    private final H3HexagonRepository h3HexagonRepository;
 
     @Nullable
     private final StringRedisTemplate stringRedisTemplate;
-
-    @Value("${app.hexagon.resolution:9}")
-    private int h3Resolution;
 
     @Value("${app.hexagon.max-cells:2000}")
     private int maxCells;
@@ -55,10 +53,12 @@ public class HexagonScoringService {
             H3Core h3,
             HexagonRawScoringSupport rawScoringSupport,
             HexagonScorePersistenceService hexagonScorePersistenceService,
+            H3HexagonRepository h3HexagonRepository,
             @Nullable StringRedisTemplate stringRedisTemplate) {
         this.h3 = h3;
         this.rawScoringSupport = rawScoringSupport;
         this.hexagonScorePersistenceService = hexagonScorePersistenceService;
+        this.h3HexagonRepository = h3HexagonRepository;
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
@@ -68,23 +68,24 @@ public class HexagonScoringService {
         Bbox b = parseBbox(bbox);
         validateBbox(b);
 
-        List<Long> cellIndices =
-                h3.polygonToCells(bboxToOuterRing(b), java.util.Collections.emptyList(), h3Resolution);
-        if (cellIndices.isEmpty()) {
+        // Use PostGIS + persisted grid so zoomed-out viewports stay bounded (polygonToCells at res 9
+        // can exceed max-cells for modest degree spans).
+        List<String> h3IndexStrings =
+                h3HexagonRepository
+                        .findH3IndicesIntersectingBbox(b.swLng, b.swLat, b.neLng, b.neLat)
+                        .stream()
+                        .distinct()
+                        .toList();
+        if (h3IndexStrings.isEmpty()) {
             return List.of();
         }
-        if (cellIndices.size() > maxCells) {
+        if (h3IndexStrings.size() > maxCells) {
             throw new IllegalArgumentException(
-                    "Requested viewport spans too many H3 cells: "
-                            + cellIndices.size()
+                    "Requested viewport intersects too many grid cells: "
+                            + h3IndexStrings.size()
                             + " (max "
                             + maxCells
                             + "). Zoom in or reduce the map area.");
-        }
-        List<String> h3IndexStrings =
-                cellIndices.stream().map(h3::h3ToString).distinct().toList();
-        if (h3IndexStrings.isEmpty()) {
-            return List.of();
         }
 
         if (profileId == null) {
@@ -240,15 +241,6 @@ public class HexagonScoringService {
                 && Double.isFinite(b.swLat)
                 && Double.isFinite(b.neLng)
                 && Double.isFinite(b.neLat);
-    }
-
-    private List<LatLng> bboxToOuterRing(Bbox b) {
-        List<LatLng> ring = new ArrayList<>();
-        ring.add(new LatLng(b.swLat, b.swLng));
-        ring.add(new LatLng(b.swLat, b.neLng));
-        ring.add(new LatLng(b.neLat, b.neLng));
-        ring.add(new LatLng(b.neLat, b.swLng));
-        return ring;
     }
 
     private static Bbox parseBbox(String raw) {

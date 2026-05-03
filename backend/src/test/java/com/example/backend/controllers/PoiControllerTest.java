@@ -49,10 +49,11 @@ class PoiControllerTest {
 
     @Test
     void getPois_viewportExceedsMaxSpan_badRequest() throws Exception {
+        // Span must exceed configured app.poi.max-bbox-deg (default 6° in application.yml)
         mockMvc.perform(get("/api/v1/poi")
-                        .param("minX", "-7.8")
+                        .param("minX", "-20")
                         .param("minY", "33.5")
-                        .param("maxX", "-6")
+                        .param("maxX", "-5")
                         .param("maxY", "33.6"))
                 .andExpect(status().isBadRequest());
     }

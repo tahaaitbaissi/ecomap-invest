@@ -106,7 +106,7 @@ app:
   # POI service: proximity analysis and saturation scoring
   poi:
     # Max bbox width/height in degrees (same order as /hexagons: swLng,swLat,neLng,neLat)
-    max-bbox-deg: ${POI_MAX_BBOX_DEG:0.5}
+    max-bbox-deg: ${POI_MAX_BBOX_DEG:6.0}
     # Categories considered as positive drivers (anchor tenants, infrastructure)
     driver-categories: ${POI_DRIVER_CATEGORIES:category=school,category=university,category=office}
     # Radius (km) to search for driver POIs (positive influence)
@@ -124,12 +124,12 @@ app:
     demographics:
       salt: 893451263
 
-  # H3 hexagon map API: viewport cells + scoring (no DB pre-seed required)
+  # H3 hexagon map API: viewport intersects persisted h3_hexagon grid (see app.h3.seed) + scoring
   hexagon:
     resolution: ${HEXAGON_RESOLUTION:9}
-    max-cells: ${HEXAGON_MAX_CELLS:2000}
+    max-cells: ${HEXAGON_MAX_CELLS:25000}
     # Reject bboxes larger than this span in degrees (lat and lng each)
-    max-bbox-deg: ${HEXAGON_MAX_BBOX_DEG:0.5}
+    max-bbox-deg: ${HEXAGON_MAX_BBOX_DEG:6.0}
     # Comma-separated type_tag values used as competitors when no dynamic_profile
     default-competitor-tags: ${HEXAGON_DEFAULT_COMPETITORS:amenity=restaurant,shop=supermarket}
     # If demographics.population_density is present, use this cap for 0-1 scale (inhabitants / km² style)
@@ -165,15 +165,6 @@ resilience4j:
       nominatim:
         failure-rate-threshold: 50
         slow-call-duration-threshold: 3s
-        slow-call-rate-threshold: 80
-        wait-duration-in-open-state: 30s
-        permitted-number-of-calls-in-half-open-state: 3
-        sliding-window-size: 10
-        sliding-window-type: COUNT_BASED
-        minimum-number-of-calls: 5
-      overpassApi:
-        failure-rate-threshold: 50
-        slow-call-duration-threshold: 10s
         slow-call-rate-threshold: 80
         wait-duration-in-open-state: 30s
         permitted-number-of-calls-in-half-open-state: 3
@@ -235,10 +226,11 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
       overpassApi:
         max-attempts: 3
-        wait-duration: 1s
+        wait-duration: 2s
         retry-exceptions:
           - java.io.IOException
           - org.springframework.web.client.ResourceAccessException
+          - java.util.concurrent.TimeoutException
       rmiScoring:
         # Maximum number of retry attempts
         max-attempts: 3
@@ -276,7 +268,8 @@ resilience4j:
         timeout-duration: 5s
         cancel-running-future: true
       overpassApi:
-        timeout-duration: 30s
+        # Overpass QL uses [timeout:60]; allow headroom above RestTemplate read timeout edge cases
+        timeout-duration: 120s
         cancel-running-future: true
       rmiScoring:
         # Timeout duration for RMI calls

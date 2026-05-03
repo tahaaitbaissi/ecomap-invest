@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.backend.controllers.dto.HexagonMapResponse;
+import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.example.backend.scoring.TagWeight;
@@ -55,11 +56,13 @@ class HexagonScoringServiceTest {
         H3Core h3 = mock(H3Core.class);
         HexagonRawScoringSupport raw = mock(HexagonRawScoringSupport.class);
         HexagonScorePersistenceService persist = mock(HexagonScorePersistenceService.class);
-        HexagonScoringService svc = newService(h3, raw, persist, null);
+        H3HexagonRepository hexRepo = mock(H3HexagonRepository.class);
+        HexagonScoringService svc = newService(h3, raw, persist, null, hexRepo);
         wireDefaults(svc);
 
         assertThrows(IllegalArgumentException.class, () -> svc.getHexagonsInBbox(null, null));
-        verify(h3, never()).polygonToCells(anyList(), anyList(), anyInt());
+        verify(hexRepo, never())
+                .findH3IndicesIntersectingBbox(anyDouble(), anyDouble(), anyDouble(), anyDouble());
     }
 
     @Test
@@ -67,8 +70,9 @@ class HexagonScoringServiceTest {
         H3Core h3 = mock(H3Core.class);
         HexagonRawScoringSupport raw = mock(HexagonRawScoringSupport.class);
         long fakeCell = 0x891ea6c0d47ffffL;
-        when(h3.polygonToCells(anyList(), anyList(), anyInt())).thenReturn(List.of(fakeCell));
-        when(h3.h3ToString(fakeCell)).thenReturn("891ea6c0d47ffff");
+        H3HexagonRepository hexRepo = mock(H3HexagonRepository.class);
+        when(hexRepo.findH3IndicesIntersectingBbox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(List.of("891ea6c0d47ffff"));
         when(h3.stringToH3("891ea6c0d47ffff")).thenReturn(fakeCell);
         when(h3.cellToBoundary(fakeCell))
                 .thenReturn(
@@ -77,7 +81,7 @@ class HexagonScoringServiceTest {
                                 new LatLng(33.57, -7.58),
                                 new LatLng(33.58, -7.59)));
         HexagonScorePersistenceService persist = mock(HexagonScorePersistenceService.class);
-        HexagonScoringService svc = newService(h3, raw, persist, null);
+        HexagonScoringService svc = newService(h3, raw, persist, null, hexRepo);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, null);
@@ -91,14 +95,14 @@ class HexagonScoringServiceTest {
     void getHexagons_unknownProfile_failsAfterViewportResolved() {
         H3Core h3 = mock(H3Core.class);
         HexagonRawScoringSupport raw = mock(HexagonRawScoringSupport.class);
-        long fakeCell = 0x891ea6c0d47ffffL;
-        when(h3.polygonToCells(anyList(), anyList(), anyInt())).thenReturn(List.of(fakeCell));
-        when(h3.h3ToString(fakeCell)).thenReturn("891ea6c0d47ffff");
+        H3HexagonRepository hexRepo = mock(H3HexagonRepository.class);
+        when(hexRepo.findH3IndicesIntersectingBbox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(List.of("891ea6c0d47ffff"));
         UUID unknown = UUID.randomUUID();
         when(raw.buildConfigForProfile(unknown))
                 .thenThrow(new NoSuchElementException("Unknown profile: " + unknown));
         HexagonScorePersistenceService persist = mock(HexagonScorePersistenceService.class);
-        HexagonScoringService svc = newService(h3, raw, persist, null);
+        HexagonScoringService svc = newService(h3, raw, persist, null, hexRepo);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         assertThrows(NoSuchElementException.class, () -> svc.getHexagonsInBbox(bbox, unknown));
@@ -110,8 +114,9 @@ class HexagonScoringServiceTest {
         H3Core h3 = mock(H3Core.class);
         HexagonRawScoringSupport raw = mock(HexagonRawScoringSupport.class);
         long fakeCell = 0x891ea6c0d47ffffL;
-        when(h3.polygonToCells(anyList(), anyList(), anyInt())).thenReturn(List.of(fakeCell));
-        when(h3.h3ToString(fakeCell)).thenReturn("891ea6c0d47ffff");
+        H3HexagonRepository hexRepo = mock(H3HexagonRepository.class);
+        when(hexRepo.findH3IndicesIntersectingBbox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(List.of("891ea6c0d47ffff"));
         when(h3.stringToH3("891ea6c0d47ffff")).thenReturn(fakeCell);
         when(h3.cellToBoundary(fakeCell))
                 .thenReturn(
@@ -142,7 +147,7 @@ class HexagonScoringServiceTest {
         when(raw.computeRaw(eq("891ea6c0d47ffff"), eq(cfg))).thenReturn(0.0);
 
         HexagonScorePersistenceService persist = mock(HexagonScorePersistenceService.class);
-        HexagonScoringService svc = newService(h3, raw, persist, null);
+        HexagonScoringService svc = newService(h3, raw, persist, null, hexRepo);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, profileId);
@@ -155,8 +160,9 @@ class HexagonScoringServiceTest {
         H3Core h3 = mock(H3Core.class);
         HexagonRawScoringSupport raw = mock(HexagonRawScoringSupport.class);
         long fakeCell = 0x891ea6c0d47ffffL;
-        when(h3.polygonToCells(anyList(), anyList(), anyInt())).thenReturn(List.of(fakeCell));
-        when(h3.h3ToString(fakeCell)).thenReturn("891ea6c0d47ffff");
+        H3HexagonRepository hexRepo = mock(H3HexagonRepository.class);
+        when(hexRepo.findH3IndicesIntersectingBbox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+                .thenReturn(List.of("891ea6c0d47ffff"));
         when(h3.stringToH3("891ea6c0d47ffff")).thenReturn(fakeCell);
         when(h3.cellToBoundary(fakeCell))
                 .thenReturn(
@@ -176,7 +182,7 @@ class HexagonScoringServiceTest {
         when(vops.multiGet(anyList())).thenReturn(List.of("0.3"));
 
         HexagonScorePersistenceService persist = mock(HexagonScorePersistenceService.class);
-        HexagonScoringService svc = newService(h3, raw, persist, redis);
+        HexagonScoringService svc = newService(h3, raw, persist, redis, hexRepo);
         wireDefaults(svc);
         String bbox = "-7.59,33.57,-7.57,33.59";
         List<HexagonMapResponse> r = svc.getHexagonsInBbox(bbox, profileId);
@@ -185,12 +191,15 @@ class HexagonScoringServiceTest {
     }
 
     private static HexagonScoringService newService(
-            H3Core h3, HexagonRawScoringSupport raw, HexagonScorePersistenceService persist, StringRedisTemplate redis) {
-        return new HexagonScoringService(h3, raw, persist, redis);
+            H3Core h3,
+            HexagonRawScoringSupport raw,
+            HexagonScorePersistenceService persist,
+            StringRedisTemplate redis,
+            H3HexagonRepository h3HexagonRepository) {
+        return new HexagonScoringService(h3, raw, persist, h3HexagonRepository, redis);
     }
 
     private static void wireDefaults(HexagonScoringService svc) {
-        ReflectionTestUtils.setField(svc, "h3Resolution", 9);
         ReflectionTestUtils.setField(svc, "maxCells", 2000);
         ReflectionTestUtils.setField(svc, "maxBboxDeg", 0.5);
         ReflectionTestUtils.setField(svc, "cacheEnabled", true);

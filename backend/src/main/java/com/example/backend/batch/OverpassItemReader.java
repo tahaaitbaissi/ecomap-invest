@@ -31,7 +31,8 @@ public class OverpassItemReader implements ItemReader<OsmElement> {
 
     private static void pauseBetweenOverpassCalls() {
         try {
-            Thread.sleep(400);
+            // Public Overpass is rate-sensitive; spacing reduces 429/timeouts during batch imports
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

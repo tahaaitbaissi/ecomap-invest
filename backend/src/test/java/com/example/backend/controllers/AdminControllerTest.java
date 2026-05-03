@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.services.CsvIngestionService;
+import com.example.backend.services.EnterpriseXlsxIngestionService;
 import com.example.backend.testsupport.MethodSecurityExceptionAdvice;
 import com.example.backend.testsupport.MethodSecurityTestConfig;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ class AdminControllerTest {
     @MockitoBean
     private CsvIngestionService csvIngestionService;
     @MockitoBean
+    private EnterpriseXlsxIngestionService enterpriseXlsxIngestionService;
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
@@ -43,5 +46,14 @@ class AdminControllerTest {
     @WithMockUser(roles = "USER")
     void ingest_forbiddenForUser() throws Exception {
         mockMvc.perform(post("/api/v1/admin/ingest-csv")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void ingestEnterprises_ok() throws Exception {
+        when(enterpriseXlsxIngestionService.ingestFromClasspath("data/enterprises.xlsx")).thenReturn(42);
+        mockMvc.perform(post("/api/v1/admin/ingest-enterprises"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rowsInserted").value(42));
     }
 }

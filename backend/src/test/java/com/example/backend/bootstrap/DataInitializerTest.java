@@ -10,6 +10,7 @@ import com.example.backend.entities.User;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.repositories.UserRepository;
 import com.example.backend.services.CsvIngestionService;
+import com.example.backend.services.EnterpriseXlsxIngestionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,12 +34,19 @@ class DataInitializerTest {
     @Mock
     private CsvIngestionService csvIngestionService;
 
+    @Mock
+    private EnterpriseXlsxIngestionService enterpriseXlsxIngestionService;
+
     private DataInitializer initializer;
 
     @BeforeEach
     void setUp() {
         initializer = new DataInitializer(
-                userRepository, passwordEncoder, poiRepository, csvIngestionService);
+                userRepository,
+                passwordEncoder,
+                poiRepository,
+                csvIngestionService,
+                enterpriseXlsxIngestionService);
     }
 
     @Test
@@ -47,6 +55,7 @@ class DataInitializerTest {
         when(userRepository.existsByEmail("user@example.com")).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("hash");
         when(poiRepository.count()).thenReturn(5L);
+        when(poiRepository.countByOsmIdStartingWith("enterprise:")).thenReturn(12L);
 
         initializer.run();
 
@@ -59,6 +68,7 @@ class DataInitializerTest {
                 cap.getAllValues().stream()
                         .anyMatch(u -> "user@example.com".equals(u.getEmail())));
         verify(csvIngestionService, never()).ingestFromCsv(any());
+        verify(enterpriseXlsxIngestionService, never()).ingestFromClasspath(any());
     }
 
     @Test
@@ -67,7 +77,10 @@ class DataInitializerTest {
         when(userRepository.existsByEmail("user@example.com")).thenReturn(true);
         when(poiRepository.count()).thenReturn(0L);
         when(csvIngestionService.ingestFromCsv("data/mock_poi.csv")).thenReturn(7);
+        when(poiRepository.countByOsmIdStartingWith("enterprise:")).thenReturn(0L);
+        when(enterpriseXlsxIngestionService.ingestFromClasspath("data/enterprises.xlsx")).thenReturn(100);
         initializer.run();
         verify(csvIngestionService).ingestFromCsv("data/mock_poi.csv");
+        verify(enterpriseXlsxIngestionService).ingestFromClasspath("data/enterprises.xlsx");
     }
 }

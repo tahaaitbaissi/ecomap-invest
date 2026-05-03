@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.services.CsvIngestionService;
+import com.example.backend.services.EnterpriseXlsxIngestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final CsvIngestionService csvIngestionService;
+    private final EnterpriseXlsxIngestionService enterpriseXlsxIngestionService;
 
     @Operation(summary = "Ingest mock POI CSV (admin)")
     @PostMapping("/ingest-csv")
@@ -30,5 +32,14 @@ public class AdminController {
                 "status", "success",
                 "rowsInserted", count
         ));
+    }
+
+    @Operation(summary = "Ingest enterprise directory XLSX into poi (admin)")
+    @PostMapping("/ingest-enterprises")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> ingestEnterprises() {
+        int count = enterpriseXlsxIngestionService.ingestFromClasspath("data/enterprises.xlsx");
+        return ResponseEntity.ok(
+                Map.of("status", "success", "rowsInserted", count));
     }
 }
