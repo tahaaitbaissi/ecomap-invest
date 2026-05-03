@@ -1,6 +1,6 @@
 package com.example.backend.overpass;
 
-import com.example.backend.config.OverpassRestTemplateConfig;
+import com.example.backend.config.HttpIntegrationConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class OverpassApiClient {
     private final OverpassResilientHttpClient resilientHttpClient;
 
     public OverpassApiClient(
-            @Qualifier(OverpassRestTemplateConfig.OVERPASS_REST_TEMPLATE) RestTemplate overpassRestTemplate,
+            @Qualifier(HttpIntegrationConfiguration.OVERPASS_REST_TEMPLATE) RestTemplate overpassRestTemplate,
             ObjectMapper objectMapper,
             OverpassResilientHttpClient resilientHttpClient,
             @Value(

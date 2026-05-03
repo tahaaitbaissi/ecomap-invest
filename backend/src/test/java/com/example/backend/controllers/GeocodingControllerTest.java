@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.services.GeocodingService;
 import com.example.backend.services.GeocodingService.GeocodingResult;
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -29,11 +29,19 @@ class GeocodingControllerTest {
 
     @Test
     void search_withQuery_ok() throws Exception {
-        when(geocodingService.search("Casablanca"))
-                .thenReturn(List.of(new GeocodingResult("Casa", 33.5, -7.6)));
+        when(geocodingService.geocode("Casablanca"))
+                .thenReturn(Optional.of(new GeocodingResult("Casa", 33.5, -7.6)));
         mockMvc.perform(get("/api/v1/geocode").param("q", "  Casablanca  "))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].displayName").value("Casa"));
+                .andExpect(jsonPath("$.displayName").value("Casa"))
+                .andExpect(jsonPath("$.lat").value(33.5))
+                .andExpect(jsonPath("$.lng").value(-7.6));
+    }
+
+    @Test
+    void search_noResult_notFound() throws Exception {
+        when(geocodingService.geocode("unknown")).thenReturn(Optional.empty());
+        mockMvc.perform(get("/api/v1/geocode").param("q", "unknown")).andExpect(status().isNotFound());
     }
 
     @Test

@@ -26,7 +26,7 @@ public class OverpassResilientHttpClient {
     private final Executor overpassExecutor;
 
     public OverpassResilientHttpClient(
-            @Qualifier(com.example.backend.config.OverpassRestTemplateConfig.OVERPASS_REST_TEMPLATE)
+            @Qualifier(com.example.backend.config.HttpIntegrationConfiguration.OVERPASS_REST_TEMPLATE)
                     RestTemplate overpassRestTemplate,
             @Qualifier("overpassExecutor") Executor overpassExecutor) {
         this.overpassRestTemplate = overpassRestTemplate;

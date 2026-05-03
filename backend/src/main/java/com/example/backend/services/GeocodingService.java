@@ -1,7 +1,6 @@
 package com.example.backend.services;
 
-import java.util.concurrent.CompletionException;
-import java.util.List;
+import java.util.Optional;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -14,19 +13,20 @@ public class GeocodingService {
         this.nominatimSearchClient = nominatimSearchClient;
     }
 
+    /**
+     * Geocode a query: first Nominatim result in Morocco, or empty. Cached; misses (empty) are
+     * not stored so repeated unknown queries still hit the API unless the circuit is open.
+     */
     @Cacheable(
             cacheNames = "geocode",
             condition = "#query != null && !#query.isBlank()",
-            key = "#query.trim().toLowerCase()")
-    public List<GeocodingResult> search(String query) {
+            key = "#query.trim().toLowerCase()",
+            unless = "#result == null || !#result.isPresent()")
+    public Optional<GeocodingResult> geocode(String query) {
         if (query == null || query.isBlank()) {
-            return List.of();
+            return Optional.empty();
         }
-        try {
-            return nominatimSearchClient.fetchAsync(query.trim()).toCompletableFuture().join();
-        } catch (CompletionException ex) {
-            return List.of();
-        }
+        return nominatimSearchClient.fetchFirst(query.trim());
     }
 
     public record GeocodingResult(String displayName, double lat, double lng) {}

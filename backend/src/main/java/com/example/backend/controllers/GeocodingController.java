@@ -1,8 +1,9 @@
 package com.example.backend.controllers;
 
 import com.example.backend.services.GeocodingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.services.GeocodingService.GeocodingResult;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +18,15 @@ public class GeocodingController {
 
     private final GeocodingService geocodingService;
 
+    @Operation(summary = "Geocode a free-text query")
     @GetMapping
-    public ResponseEntity<List<GeocodingResult>> search(@RequestParam("q") String query) {
+    public ResponseEntity<GeocodingResult> search(@RequestParam("q") String query) {
         if (query == null || query.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(geocodingService.search(query.trim()));
+        return geocodingService
+                .geocode(query.trim())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
