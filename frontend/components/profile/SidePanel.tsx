@@ -10,12 +10,13 @@ export default function SidePanel() {
 
   if (!hex) return null;
 
+  const score = hex.score ?? 0;
   const color = getHexColor(hex.score);
   const data = [
-    { name: "Flux", value: Math.round(hex.score * 0.9) },
-    { name: "Densité", value: Math.round(hex.score * 0.75) },
-    { name: "Concur.", value: Math.round(100 - hex.score * 0.6) },
-    { name: "Accès", value: Math.round(hex.score * 0.85) },
+    { name: "Flux", value: Math.round(score * 0.9) },
+    { name: "Densité", value: Math.round(score * 0.75) },
+    { name: "Concur.", value: Math.round(100 - score * 0.6) },
+    { name: "Accès", value: Math.round(score * 0.85) },
   ];
 
   return (
@@ -31,7 +32,9 @@ export default function SidePanel() {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
         <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ fontSize: "16px", fontWeight: 800, color: "#fff" }}>{hex.score}</span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#fff" }}>
+            {hex.score == null ? "—" : Math.round(hex.score)}
+          </span>
         </div>
         <div>
           <div style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Score global</div>

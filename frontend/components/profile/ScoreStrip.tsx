@@ -8,21 +8,24 @@ export default function ScoreStrip() {
   const hexagonRecord = useStore((s) => s.hexagonRecord);
   const hexs = useMemo(() => Object.values(hexagonRecord), [hexagonRecord]);
 
+  const scored = useMemo(() => hexs.filter((h): h is typeof h & { score: number } => h.score != null), [hexs]);
+
   const data = useMemo(() => {
     const buckets = Array.from({ length: 10 }, (_, i) => ({
       range: `${i * 10}-${i * 10 + 9}`,
       count: 0,
     }));
-    hexs.forEach((h) => {
+    scored.forEach((h) => {
       const idx = Math.min(9, Math.floor(h.score / 10));
       buckets[idx].count++;
     });
     return buckets;
-  }, [hexs]);
+  }, [scored]);
 
   if (hexs.length === 0) return null;
 
-  const avg = Math.round(hexs.reduce((s, h) => s + h.score, 0) / hexs.length);
+  const avg =
+    scored.length > 0 ? Math.round(scored.reduce((s, h) => s + h.score, 0) / scored.length) : 0;
 
   return (
     <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "10px 16px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "16px" }}>
