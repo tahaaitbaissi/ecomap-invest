@@ -23,6 +23,7 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- Do not import langchain4j-bom: it inherits langchain4j-parent’s junit-bom 5.11.x and breaks Spring/JUnit 6. Pin modules explicitly. -->
 			<dependency>
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers-bom</artifactId>
@@ -111,8 +112,9 @@
 			<artifactId>hibernate-spatial</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-ollama</artifactId>
+			<version>0.36.2</version>
 		</dependency>
 
 		<dependency>
@@ -204,6 +206,18 @@
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-timelimiter</artifactId>
 			<version>2.1.0</version>
+		</dependency>
+
+		<!-- F14: JTA / 2PC (Atomikos); wire XA datasources when introducing a second resource manager -->
+		<dependency>
+			<groupId>com.atomikos</groupId>
+			<artifactId>transactions-jta</artifactId>
+			<version>6.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.atomikos</groupId>
+			<artifactId>transactions-jdbc</artifactId>
+			<version>6.0.0</version>
 		</dependency>
 
 		<dependency>
