@@ -1,5 +1,7 @@
 package com.example.backend.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
@@ -23,6 +25,7 @@ public class HealthController {
     @Value("${app.rmi.scoring.service-name:ScoringService}")
     private String serviceName;
 
+    @Operation(summary = "Health: PostgreSQL app status plus RMI registry reachability")
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> root = new HashMap<>();

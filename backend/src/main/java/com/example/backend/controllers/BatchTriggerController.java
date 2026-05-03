@@ -1,6 +1,10 @@
 package com.example.backend.controllers;
 
+import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.BatchJobStatusResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.controllers.dto.BatchTriggerResponse;
 import java.util.Collection;
 import org.springframework.batch.core.job.Job;
@@ -11,6 +15,7 @@ import org.springframework.batch.core.job.parameters.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.explore.JobExplorer;
 import org.springframework.batch.core.step.StepExecution;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,8 +24,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Batch jobs", description = "OSM import (requires app.batch.enabled=true)")
 @RestController
 @RequestMapping("/api/v1/admin/batch")
+@ConditionalOnProperty(prefix = "app.batch", name = "enabled", havingValue = "true")
+@SecurityRequirement(name = "bearerAuth")
 public class BatchTriggerController {
 
     private final JobLauncher jobLauncher;
@@ -34,8 +42,10 @@ public class BatchTriggerController {
         this.jobExplorer = jobExplorer;
     }
 
+    @Operation(summary = "Launch OSM import batch job")
     @PostMapping("/trigger")
     @PreAuthorize("hasRole('ADMIN')")
+    @Audited(action = "BATCH_TRIGGER")
     public ResponseEntity<BatchTriggerResponse> trigger() throws Exception {
         JobParameters params =
                 new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis()).toJobParameters();
@@ -48,6 +58,7 @@ public class BatchTriggerController {
                         execution.getStatus() != null ? execution.getStatus().name() : "UNKNOWN"));
     }
 
+    @Operation(summary = "Get batch execution status")
     @GetMapping("/status/{executionId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BatchJobStatusResponse> status(@PathVariable long executionId) {

@@ -1,6 +1,9 @@
 package com.example.backend.controllers;
 
 import com.example.backend.controllers.dto.ZoneStatsResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.services.AnalyticsService;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -21,6 +24,7 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
 
+    @Operation(summary = "Zone statistics for an H3 cell and profile")
     @GetMapping("/zone")
     public ResponseEntity<?> zone(
             Authentication authentication,

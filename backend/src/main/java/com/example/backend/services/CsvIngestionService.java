@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.PoiCsvRecord;
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
@@ -26,6 +27,7 @@ public class CsvIngestionService {
     private final GeometryFactory geometryFactory;
 
     @Transactional
+    @Audited(action = "INGEST_CSV")
     public int ingestFromCsv(String classpathFile) {
         int saved = 0;
         int skipped = 0;

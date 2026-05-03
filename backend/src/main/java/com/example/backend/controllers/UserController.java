@@ -1,6 +1,9 @@
 package com.example.backend.controllers;
 
 import com.example.backend.controllers.dto.UserProfileDTO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.controllers.dto.UpdateProfileRequest;
 import com.example.backend.entities.User;
 import com.example.backend.services.UserService;
@@ -15,8 +18,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Users", description = "Current user profile")
 @RestController
 @RequestMapping("/api/v1/users")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
@@ -26,12 +31,14 @@ public class UserController {
         this.userService = userService;
     }
 
+    @Operation(summary = "Get authenticated user profile")
     @GetMapping("/me")
     public ResponseEntity<UserProfileDTO> getMyProfile(@AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails principal) {
         User user = userService.getUserByEmail(principal.getUsername());
         return ResponseEntity.ok(toUserProfileDto(user));
     }
 
+    @Operation(summary = "Update company name or password")
     @PutMapping("/me")
     public ResponseEntity<UserProfileDTO> updateMyProfile(@AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails principal,
                                              @Valid @RequestBody UpdateProfileRequest request) {

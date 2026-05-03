@@ -1,6 +1,8 @@
 package com.example.backend.controllers;
 
 import com.example.backend.controllers.dto.RmiScoreResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.services.rmi.RmiScoringClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Public for lab demos (no JWT); tighten with {@code hasRole('ADMIN')} in production.
  */
 @Slf4j
+@Tag(name = "RMI scoring demo", description = "Public demo of remote JVM saturation scoring")
 @RestController
 @RequestMapping("/api/v1/rmi")
 @RequiredArgsConstructor
@@ -53,6 +56,7 @@ public class RmiScoringController {
      * Health check (ping) endpoint.
      * Tests connectivity to RMI scoring service.
      */
+    @Operation(summary = "Ping RMI scoring node")
     @GetMapping("/ping")
     public ResponseEntity<?> ping() {
         try {

@@ -27,12 +27,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(BatchTriggerController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({MethodSecurityTestConfig.class, MethodSecurityExceptionAdvice.class})
+@TestPropertySource(properties = "app.batch.enabled=true")
 class BatchTriggerControllerTest {
 
     @Autowired

@@ -30,34 +30,49 @@ class PoiControllerTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
-    void getPois_validBbox_ok() throws Exception {
+    void getPois_validViewport_ok() throws Exception {
         var id = UUID.randomUUID();
         when(poiService.getPoisInBoundingBox(-7.7, 33.5, -7.5, 33.6))
                 .thenReturn(
                         List.of(
                                 new com.example.backend.controllers.dto.PoiMapResponse(
                                         id, "N", "A", "shop=x", 33.5, -7.6, 12.0)));
-        mockMvc.perform(get("/api/v1/poi").param("bbox", "-7.7,33.5,-7.5,33.6"))
+        mockMvc.perform(get("/api/v1/poi")
+                        .param("minX", "-7.7")
+                        .param("minY", "33.5")
+                        .param("maxX", "-7.5")
+                        .param("maxY", "33.6"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", containsString("max-age=300")))
                 .andExpect(jsonPath("$[0].name").value("N"));
     }
 
     @Test
-    void getPois_bboxExceedsMaxSpan_badRequest() throws Exception {
-        mockMvc.perform(get("/api/v1/poi").param("bbox", "-7.8,33.5,-6,33.6"))
+    void getPois_viewportExceedsMaxSpan_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/poi")
+                        .param("minX", "-7.8")
+                        .param("minY", "33.5")
+                        .param("maxX", "-6")
+                        .param("maxY", "33.6"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void getPois_invalidBboxCount_badRequest() throws Exception {
-        mockMvc.perform(get("/api/v1/poi").param("bbox", "1,2,3"))
+    void getPois_missingParam_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/poi")
+                        .param("minX", "1")
+                        .param("minY", "2")
+                        .param("maxX", "3"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void getPois_nonNumericBbox_badRequest() throws Exception {
-        mockMvc.perform(get("/api/v1/poi").param("bbox", "a,b,c,d"))
+    void getPois_nonNumericParam_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/poi")
+                        .param("minX", "a")
+                        .param("minY", "b")
+                        .param("maxX", "c")
+                        .param("maxY", "d"))
                 .andExpect(status().isBadRequest());
     }
 }

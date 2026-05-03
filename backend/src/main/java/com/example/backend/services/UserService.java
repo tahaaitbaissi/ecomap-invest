@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.UpdateProfileRequest;
 import com.example.backend.entities.User;
 import com.example.backend.repositories.UserRepository;
@@ -26,6 +27,7 @@ public class UserService {
         return userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
     }
 
+    @Audited(action = "UPDATE_PROFILE", maskParams = {"request"})
     public User updateProfile(String currentEmail, UpdateProfileRequest request) {
         User user = getUserByEmail(currentEmail);
 
