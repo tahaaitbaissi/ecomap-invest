@@ -8,6 +8,7 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,7 @@ public class CsvIngestionService {
                 poi.setAddress(rec.getAddress());
                 poi.setTypeTag("category=" + rec.getCategory());
                 poi.setLocation(point);
+                poi.setImportedAt(new Timestamp(System.currentTimeMillis()));
 
                 poiRepository.save(poi);
                 saved++;

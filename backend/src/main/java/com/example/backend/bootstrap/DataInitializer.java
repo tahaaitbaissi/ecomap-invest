@@ -55,8 +55,12 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         if (poiRepository.count() == 0) {
-            int inserted = csvIngestionService.ingestFromCsv("data/mock_poi.csv");
-            System.out.println("=> POIs seeded from CSV: " + inserted);
+            try {
+                int inserted = csvIngestionService.ingestFromCsv("data/mock_poi.csv");
+                System.out.println("=> POIs seeded from CSV: " + inserted);
+            } catch (Exception e) {
+                System.err.println("=> POI CSV seed skipped (non-fatal): " + e.getMessage());
+            }
         }
     }
 }
