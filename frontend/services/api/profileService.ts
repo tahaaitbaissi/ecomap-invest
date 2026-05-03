@@ -30,25 +30,25 @@ export interface PageDto<T> {
  */
 export async function fetchMyProfiles(
   page = 0,
-  size = 100
+  size = 100,
 ): Promise<PageDto<DynamicProfileResponse>> {
-  const res = await axios.get<PageDto<DynamicProfileResponse>>(
-    "/api/v1/profile/my",
-    {
-      params: {
-        page,
-        size,
-        sort: "generatedAt,desc",
-      },
-    }
-  );
+  const res = await axios.get<PageDto<DynamicProfileResponse>>("/api/v1/profile/my", {
+    params: {
+      page,
+      size,
+      sort: "generatedAt,desc",
+    },
+  });
   return res.data;
 }
 
 /** Convenience for UIs that only need the first page of rows. */
-export async function fetchMyProfilesAsList(
-  size = 100
-): Promise<DynamicProfileResponse[]> {
+export async function fetchMyProfilesAsList(size = 100): Promise<DynamicProfileResponse[]> {
   const p = await fetchMyProfiles(0, size);
   return p.content;
+}
+
+export async function generateDynamicProfile(query: string): Promise<DynamicProfileResponse> {
+  const res = await axios.post<DynamicProfileResponse>("/api/v1/profile/generate", { query });
+  return res.data;
 }

@@ -37,8 +37,16 @@ export default function Header() {
 
   return (
     <>
-      <header style={{ height: "72px", padding: "0 48px", backgroundColor: "#1a56db" }} className="sticky top-0 z-30 w-full flex items-center justify-between">
-        <button onClick={() => router.push("/dashboard")} className="flex items-center shrink-0" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+      <header
+        style={{ height: "72px", padding: "0 48px", backgroundColor: "#1a56db" }}
+        className="sticky top-0 z-30 flex w-full shrink-0 items-center justify-between"
+      >
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex shrink-0 items-center"
+          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+          type="button"
+        >
           <Image
             src="/logoNoBg.svg"
             alt="EcoMap Invest"
@@ -66,14 +74,22 @@ export default function Header() {
             }}
           >
             <span
-              style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#4ade80", flexShrink: 0, display: "inline-block" }}
+              style={{
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: "#4ade80",
+                flexShrink: 0,
+                display: "inline-block",
+              }}
             />
             Connected
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="flex items-center hover:opacity-80 transition-opacity"
+            className="flex items-center transition-opacity hover:opacity-80"
             style={{
               gap: "8px",
               color: "#fff",
@@ -92,9 +108,10 @@ export default function Header() {
           </button>
 
           <button
+            type="button"
             onClick={() => setProfileOpen(true)}
             aria-label="Open profile panel"
-            className="flex items-center justify-center hover:scale-105 transition-transform"
+            className="flex items-center justify-center transition-transform hover:scale-105"
             style={{
               position: "relative",
               width: "44px",

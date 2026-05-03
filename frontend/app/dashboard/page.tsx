@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/profile/Header";
 import Sidebar, { type SidebarViewId } from "@/components/profile/Sidebar";
 import Map from "@/components/profile/Map";
+import RightPanel from "@/components/profile/RightPanel";
 import { getToken } from "@/lib/auth";
+import { useStore } from "@/store/useStore";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [sidebarView, setSidebarView] = useState<SidebarViewId>("heatmap");
+  const setActiveView = useStore((s) => s.setActiveView);
 
   useEffect(() => {
     if (!getToken()) {
@@ -17,14 +20,19 @@ export default function DashboardPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    setActiveView(sidebarView);
+  }, [sidebarView, setActiveView]);
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <Header />
-      <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-5">
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
-          <Sidebar activeView={sidebarView} onActiveViewChange={setSidebarView} />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Sidebar activeView={sidebarView} onActiveViewChange={setSidebarView} />
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 md:p-5">
           <Map simulationMode={sidebarView === "whatif"} />
-        </div>
+        </main>
+        <RightPanel />
       </div>
     </div>
   );

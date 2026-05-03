@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { useStore } from "@/store/useStore";
+import ProfileInput from "@/components/profile/ProfileInput";
+import ProfileHistory from "@/components/profile/ProfileHistory";
 
 const menuItems = [
   { id: "heatmap", label: "Heatmap & Scoring", icon: HeatmapIcon },
   { id: "whatif", label: "What-if Simulation", icon: WhatIfIcon },
   { id: "analytics", label: "Analytics", icon: AnalyticsIcon },
   { id: "ai", label: "AI Assistant", icon: AIIcon },
-];
+] as const;
 
 const poiItems = [
-  { id: "restaurants", label: "Restaurants", color: "#f97316", icon: "🍽️" },
-  { id: "retail", label: "Retail", color: "#a855f7", icon: "🛍️" },
-  { id: "offices", label: "Offices", color: "#6b7280", icon: "🏢" },
-  { id: "entertain", label: "Entertainment", color: "#64748b", icon: "🎭" },
+  { id: "restaurants", label: "Restaurants", icon: "🍽️" },
+  { id: "retail", label: "Retail", icon: "🛍️" },
+  { id: "offices", label: "Offices", icon: "🏢" },
+  { id: "entertain", label: "Entertainment", icon: "🎭" },
 ];
 
 const legend = [
@@ -32,21 +35,26 @@ export interface SidebarProps {
 }
 
 export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps = {}) {
+  const showHeatmap = useStore((s) => s.showHeatmap);
+  const toggleHeatmap = useStore((s) => s.toggleHeatmap);
+  const showScoreLabels = useStore((s) => s.showScoreLabels);
+  const toggleScoreLabels = useStore((s) => s.toggleScoreLabels);
+  const showPoiMarkers = useStore((s) => s.showPoiMarkers);
+  const togglePoiMarkers = useStore((s) => s.togglePoiMarkers);
+
   const [internalActive, setInternalActive] = useState<SidebarViewId>("heatmap");
   const controlled = activeView != null;
-  const active = controlled ? activeView : internalActive;
+  const currentView = controlled ? activeView! : internalActive;
 
-  const setActive = (id: SidebarViewId) => {
+  const setView = (id: SidebarViewId) => {
     if (controlled && onActiveViewChange) {
       onActiveViewChange(id);
     } else if (!controlled) {
       setInternalActive(id);
     }
   };
-  const [layers, setLayers] = useState({ heatmap: true, labels: true, poi: true });
-  const [pois, setPois] = useState({ restaurants: true, retail: true, offices: true, entertain: false });
 
-  const toggleLayer = (k: keyof typeof layers) => setLayers((p) => ({ ...p, [k]: !p[k] }));
+  const [pois, setPois] = useState({ restaurants: true, retail: true, offices: true, entertain: false });
   const togglePoi = (k: keyof typeof pois) => setPois((p) => ({ ...p, [k]: !p[k] }));
 
   return (
@@ -65,11 +73,12 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
       <Section title="View Mode">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = active === item.id;
+          const isActive = currentView === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => setActive(item.id)}
+              type="button"
+              onClick={() => setView(item.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -103,12 +112,12 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
 
       <Section title="Layer Controls">
         {[
-          { key: "heatmap" as const, label: "Heatmap Overlay" },
-          { key: "labels" as const, label: "Score Labels" },
-          { key: "poi" as const, label: "POI Markers" },
-        ].map(({ key, label }) => (
+          { label: "Heatmap Overlay", checked: showHeatmap, onChange: toggleHeatmap },
+          { label: "Score Labels", checked: showScoreLabels, onChange: toggleScoreLabels },
+          { label: "POI Markers", checked: showPoiMarkers, onChange: togglePoiMarkers },
+        ].map(({ label, checked, onChange }) => (
           <label
-            key={key}
+            key={label}
             style={{
               display: "flex",
               alignItems: "center",
@@ -119,7 +128,7 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
               color: "#374151",
             }}
           >
-            <Checkbox checked={layers[key]} onChange={() => toggleLayer(key)} />
+            <Checkbox checked={checked} onChange={onChange} />
             {label}
           </label>
         ))}
@@ -146,18 +155,39 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
         ))}
       </Section>
 
-      <Section title="Score Legend" last>
+      <Section title="Score Legend">
         {legend.map((l) => (
           <div
             key={l.label}
-            style={{ display: "flex", alignItems: "center", gap: "9px", padding: "3px 16px", fontSize: "13px", color: "#374151" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "9px",
+              padding: "3px 16px",
+              fontSize: "13px",
+              color: "#374151",
+            }}
           >
             <span
-              style={{ width: "16px", height: "16px", borderRadius: "4px", background: l.color, flexShrink: 0, display: "inline-block" }}
+              style={{
+                width: "16px",
+                height: "16px",
+                borderRadius: "4px",
+                background: l.color,
+                flexShrink: 0,
+                display: "inline-block",
+              }}
             />
             {l.label}
           </div>
         ))}
+      </Section>
+
+      <Section title="Profil commercial" last>
+        <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <ProfileInput />
+          <ProfileHistory />
+        </div>
       </Section>
     </aside>
   );
@@ -165,7 +195,13 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
 
 function Section({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) {
   return (
-    <div style={{ marginBottom: last ? 0 : "8px", paddingBottom: last ? 0 : "8px", borderBottom: last ? "none" : "1px solid #f1f5f9" }}>
+    <div
+      style={{
+        marginBottom: last ? 0 : "8px",
+        paddingBottom: last ? 0 : "8px",
+        borderBottom: last ? "none" : "1px solid #f1f5f9",
+      }}
+    >
       <p
         style={{
           fontSize: "11px",
@@ -186,6 +222,15 @@ function Section({ title, children, last = false }: { title: string; children: R
 function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <span
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          onChange();
+        }
+      }}
       onClick={onChange}
       style={{
         width: "16px",
@@ -201,7 +246,9 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
         cursor: "pointer",
       }}
     >
-      {checked && <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700, lineHeight: 1 }}>✓</span>}
+      {checked && (
+        <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700, lineHeight: 1 }}>✓</span>
+      )}
     </span>
   );
 }

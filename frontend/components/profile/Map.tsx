@@ -13,15 +13,27 @@ import {
   simulateImpact,
   type SimulationImpactType,
 } from "@/services/api/simulationService";
+import { useStore } from "@/store/useStore";
 
 export interface MapProps {
   simulationMode: boolean;
 }
 
 export default function Map({ simulationMode }: MapProps) {
+  const replaceHexagons = useStore((s) => s.replaceHexagons);
+  const setSelectedHexIndex = useStore((s) => s.setSelectedHexIndex);
+  const selectedHexIndex = useStore((s) => s.selectedHexIndex);
+  const setProfileIdStore = useStore((s) => s.setProfileId);
+  const profileIdFromStore = useStore((s) => s.profileId);
+  const showHeatmap = useStore((s) => s.showHeatmap);
+  const showScoreLabels = useStore((s) => s.showScoreLabels);
+  const showPoiMarkers = useStore((s) => s.showPoiMarkers);
+
   const [pois, setPois] = useState<PoiDto[]>([]);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,6 +47,7 @@ export default function Map({ simulationMode }: MapProps) {
   const [simTag, setSimTag] = useState("");
   const [simError, setSimError] = useState<string | null>(null);
   const [simLoading, setSimLoading] = useState(false);
+  const [isLoadingHexagons, setIsLoadingHexagons] = useState(false);
 
   const sessionIdRef = useRef<string | null>(null);
   const lastBboxRef = useRef<BoundingBox | null>(null);
@@ -44,13 +57,29 @@ export default function Map({ simulationMode }: MapProps) {
       .then((list) => {
         setProfiles(list);
         if (list.length > 0) {
-          setSelectedProfileId(list[0].id);
+          setSelectedProfileId((cur) => cur ?? list[0].id);
         }
       })
       .catch(() => {
         /* not logged in or API down */
       });
   }, []);
+
+  useEffect(() => {
+    if (profileIdFromStore) {
+      void fetchMyProfilesAsList(100).then(setProfiles).catch(() => {});
+    }
+  }, [profileIdFromStore]);
+
+  useEffect(() => {
+    setProfileIdStore(selectedProfileId);
+  }, [selectedProfileId, setProfileIdStore]);
+
+  useEffect(() => {
+    if (profileIdFromStore && profileIdFromStore !== selectedProfileId) {
+      setSelectedProfileId(profileIdFromStore);
+    }
+  }, [profileIdFromStore, selectedProfileId]);
 
   useEffect(() => {
     if (!simulationMode) {
@@ -95,21 +124,25 @@ export default function Map({ simulationMode }: MapProps) {
     });
   }, [baselineHexagons, simScoreOverrides]);
 
+  useEffect(() => {
+    replaceHexagons(displayHexagons);
+  }, [displayHexagons, replaceHexagons]);
+
   const handleBoundsChange = useCallback(
     async (bbox: BoundingBox) => {
       lastBboxRef.current = bbox;
-      try {
-        const poiData = await fetchPoisInBbox(bbox);
-        setPois(poiData);
-      } catch {
-        /* backend may not be ready */
-      }
-      try {
-        const hexData = await fetchHexagonsInBbox(bbox, selectedProfileId);
-        setBaselineHexagons(hexData);
-      } catch {
+      setIsLoadingHexagons(true);
+      const [poisResult, hexResult] = await Promise.allSettled([
+        fetchPoisInBbox(bbox),
+        fetchHexagonsInBbox(bbox, selectedProfileId),
+      ]);
+      if (poisResult.status === "fulfilled") setPois(poisResult.value);
+      if (hexResult.status === "fulfilled") {
+        setBaselineHexagons(hexResult.value);
+      } else {
         setBaselineHexagons([]);
       }
+      setIsLoadingHexagons(false);
     },
     [selectedProfileId],
   );
@@ -117,26 +150,37 @@ export default function Map({ simulationMode }: MapProps) {
   useEffect(() => {
     const b = lastBboxRef.current;
     if (!b) return;
+    setIsLoadingHexagons(true);
     void fetchHexagonsInBbox(b, selectedProfileId)
-      .then(setBaselineHexagons)
-      .catch(() => setBaselineHexagons([]));
+      .then((hex) => {
+        setBaselineHexagons(hex);
+      })
+      .catch(() => setBaselineHexagons([]))
+      .finally(() => setIsLoadingHexagons(false));
   }, [selectedProfileId]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
+    setNoResults(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (value.trim().length < 3) {
       setResults([]);
+      setIsSearching(false);
       return;
     }
+    setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await searchAddress(value.trim());
         setResults(res);
+        setNoResults(res.length === 0);
       } catch {
         setResults([]);
+        setNoResults(true);
+      } finally {
+        setIsSearching(false);
       }
-    }, 400);
+    }, 350);
   };
 
   const handleResultClick = (result: GeocodingResult) => {
@@ -146,11 +190,14 @@ export default function Map({ simulationMode }: MapProps) {
     setTimeout(() => setFlyTo(null), 500);
   };
 
-  const onSimulationMapClick = useCallback((lat: number, lng: number) => {
-    if (!selectedProfileId || !selectedProfile) return;
-    setPendingClick({ lat, lng });
-    setSimError(null);
-  }, [selectedProfileId, selectedProfile]);
+  const onSimulationMapClick = useCallback(
+    (lat: number, lng: number) => {
+      if (!selectedProfileId || !selectedProfile) return;
+      setPendingClick({ lat, lng });
+      setSimError(null);
+    },
+    [selectedProfileId, selectedProfile],
+  );
 
   const handleConfirmSimulation = async () => {
     if (!pendingClick || !selectedProfileId || !sessionIdRef.current) return;
@@ -208,16 +255,24 @@ export default function Map({ simulationMode }: MapProps) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white" style={{ minHeight: "500px" }}>
+    <div
+      className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white"
+      style={{ minHeight: "500px", flex: 1 }}
+    >
       <div className="absolute inset-0 z-0">
         <DynamicMap
           pois={pois}
           hexagons={displayHexagons}
+          selectedHexIndex={selectedHexIndex}
+          ghostMarkers={ghostMarkers}
+          showHeatmap={showHeatmap}
+          showScoreLabels={showScoreLabels}
+          showPoiMarkers={showPoiMarkers}
           onBoundsChange={handleBoundsChange}
+          onHexClick={(h) => setSelectedHexIndex(h.h3Index)}
           flyTo={flyTo}
           simulationMode={simulationMode}
           onSimulationMapClick={simulationMode ? onSimulationMapClick : undefined}
-          ghostMarkers={ghostMarkers}
         />
       </div>
 
@@ -245,7 +300,9 @@ export default function Map({ simulationMode }: MapProps) {
                 </select>
               </label>
             )}
-            {!selectedProfileId && <p className="text-amber-700">Generate a dynamic profile to run simulations.</p>}
+            {!selectedProfileId && (
+              <p className="text-amber-700">Generate a dynamic profile to run simulations.</p>
+            )}
             {selectedProfileId && (
               <p className="text-slate-500">Click the map to place a ghost POI (crosshair cursor).</p>
             )}
@@ -326,10 +383,25 @@ export default function Map({ simulationMode }: MapProps) {
           style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.25)" }}
         >
           <div className="flex items-center gap-2.5 rounded-full px-5 py-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            {isSearching ? (
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#1a56db"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                className="shrink-0 animate-spin"
+              >
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" className="shrink-0">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            )}
             <input
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -337,22 +409,35 @@ export default function Map({ simulationMode }: MapProps) {
               className="flex-1 border-none bg-transparent text-sm text-gray-700 outline-none placeholder:text-slate-400"
             />
           </div>
-          {results.length > 0 && (
-            <ul className="max-h-48 overflow-y-auto border-t border-slate-100 px-2 py-1">
-              {results.map((r, i) => (
-                <li key={i}>
-                  <button
-                    onClick={() => handleResultClick(r)}
-                    className="w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50"
-                  >
-                    {r.displayName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
+        {noResults && !isSearching && search.trim().length >= 3 && (
+          <div className="pointer-events-auto mt-1.5 rounded-xl bg-white px-4 py-3 text-center text-sm text-slate-400 shadow-md">
+            Aucun résultat trouvé
+          </div>
+        )}
+        {results.length > 0 && (
+          <ul className="pointer-events-auto mt-1.5 max-h-48 overflow-y-auto rounded-xl border border-slate-100 bg-white py-1 shadow-md">
+            {results.map((r, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => handleResultClick(r)}
+                  className="w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 hover:bg-blue-50"
+                >
+                  {r.displayName}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      {isLoadingHexagons && (
+        <div className="pointer-events-none absolute right-4 top-16 z-[1000] flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-md backdrop-blur-sm">
+          <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+          Chargement des zones…
+        </div>
+      )}
     </div>
   );
 }
