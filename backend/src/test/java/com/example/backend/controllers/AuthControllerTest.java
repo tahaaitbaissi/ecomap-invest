@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.backend.controllers.dto.LoginRequest;
 import com.example.backend.controllers.dto.RegisterRequest;
 import com.example.backend.repositories.UserRepository;
-import com.example.backend.security.JWTUtil;
 import com.example.backend.security.JwtService;
 import com.example.backend.services.AuthService;
 import com.example.backend.services.LoginService;
@@ -22,6 +21,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -33,8 +33,6 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserRepository userRepository;
-    @MockitoBean
-    private JWTUtil jwtUtil;
     @MockitoBean
     private JwtService jwtService;
     @MockitoBean
@@ -85,7 +83,15 @@ class AuthControllerTest {
         u.setEmail("a@a.com");
         u.setRole("ROLE_INVESTOR");
         org.mockito.Mockito.when(userRepository.findByEmail("a@a.com")).thenReturn(java.util.Optional.of(u));
-        org.mockito.Mockito.when(jwtUtil.generateToken("a@a.com")).thenReturn("jwt-999");
+        UserDetails ud =
+                org.springframework.security.core.userdetails.User.builder()
+                        .username("a@a.com")
+                        .password("x")
+                        .authorities("ROLE_INVESTOR")
+                        .build();
+        org.mockito.Mockito.when(loginService.loadUserByUsername("a@a.com")).thenReturn(ud);
+        org.mockito.Mockito.when(jwtService.generateToken(org.mockito.ArgumentMatchers.any(UserDetails.class)))
+                .thenReturn("jwt-999");
 
         var body = new LoginRequest("a@a.com", "secret");
         mockMvc.perform(

@@ -1,13 +1,15 @@
 package com.example.backend.services;
 
+import com.example.backend.audit.Audited;
 import com.example.backend.controllers.dto.AuthResponse;
 import com.example.backend.controllers.dto.RegisterRequest;
 import com.example.backend.entities.Role;
 import com.example.backend.entities.User;
 import com.example.backend.exceptions.EmailAlreadyExistsException;
 import com.example.backend.repositories.UserRepository;
-import com.example.backend.security.JWTUtil;
+import com.example.backend.security.JwtService;
 import java.sql.Timestamp;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,14 +17,17 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final JWTUtil jwtUtil;
+    private final JwtService jwtService;
+    private final LoginService loginService;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
 
-    public AuthService(UserRepository userRepository, JWTUtil jwtUtil) {
+    public AuthService(UserRepository userRepository, JwtService jwtService, LoginService loginService) {
         this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
+        this.jwtService = jwtService;
+        this.loginService = loginService;
     }
 
+    @Audited(action = "REGISTER", maskParams = {"request"})
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException(request.email());
@@ -37,7 +42,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        UserDetails userDetails = loginService.loadUserByUsername(user.getEmail());
+        String token = jwtService.generateToken(userDetails);
         long expiresInSeconds = 86400L;
         return new AuthResponse(token, expiresInSeconds, user.getEmail(), user.getRole());
     }
