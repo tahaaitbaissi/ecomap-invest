@@ -1,7 +1,10 @@
 package com.example.backend.util;
 
 /**
- * Shared rules for public map POI / hex viewports. Bbox order: {@code swLng, swLat, neLng, neLat}.
+ * Shared rules for public map POI / hex viewports.
+ *
+ * <p>Corner order: south-west then north-east — either as {@code swLng, swLat, neLng, neLat} or as
+ * named params {@code minX=min(swLng), minY=min(swLat), maxX=max(neLng), maxY=max(neLat)}.
  */
 public final class ViewportBbox {
 

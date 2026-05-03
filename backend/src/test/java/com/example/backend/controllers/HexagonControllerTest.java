@@ -1,10 +1,15 @@
 package com.example.backend.controllers;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,22 +40,22 @@ class HexagonControllerTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
-    void getHexagons_ok() throws Exception {
-        when(hexagonScoringService.getHexagonsInBbox(
-                        any(String.class), isNull()))
+    void getHexagons_grayMode_ok() throws Exception {
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull()))
                 .thenReturn(
                         List.of(
                                 new HexagonMapResponse(
                                         "891ea6c0d47ffff",
-                                        55.0,
+                                        null,
                                         List.of(
                                                 new HexagonMapResponse.LatLng(33.0, -7.5),
                                                 new HexagonMapResponse.LatLng(33.01, -7.5)))));
 
         mockMvc.perform(get("/api/v1/hexagons").param("bbox", "-7.6,33.5,-7.5,33.6"))
                 .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", containsString("max-age=3600")))
                 .andExpect(jsonPath("$[0].h3Index").value("891ea6c0d47ffff"))
-                .andExpect(jsonPath("$[0].score").value(55.0));
+                .andExpect(jsonPath("$[0].score").value(nullValue()));
 
         verify(hexagonScoringService).getHexagonsInBbox("-7.6,33.5,-7.5,33.6", null);
     }
@@ -65,10 +71,10 @@ class HexagonControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getHexagons_profileNotFound_404() throws Exception {
         UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        when(hexagonScoringService.getHexagonsInBbox(
-                        any(String.class), any()))
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), eq(id)))
                 .thenThrow(new NoSuchElementException("Unknown profile: " + id));
 
         mockMvc.perform(
@@ -76,5 +82,16 @@ class HexagonControllerTest {
                                 .param("bbox", "-7.6,33.5,-7.5,33.6")
                                 .param("profileId", id.toString()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getHexagons_profileWithoutJwt_unauthorized() throws Exception {
+        UUID id = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        mockMvc.perform(
+                        get("/api/v1/hexagons")
+                                .param("bbox", "-7.6,33.5,-7.5,33.6")
+                                .param("profileId", id.toString()))
+                .andExpect(status().isUnauthorized());
+        verify(hexagonScoringService, never()).getHexagonsInBbox(any(), any());
     }
 }
