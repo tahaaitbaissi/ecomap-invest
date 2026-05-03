@@ -95,21 +95,21 @@ services:
       - backend
       - frontend
 
-  # Frontend Next.js
-  # NEXT_PUBLIC_* is baked in at image build time; use build.args (see frontend Dockerfile).
-  # Base URL must be the host-reachable API root without duplicating /api/v1 (axios paths already include it).
+  # Frontend Next.js — browser uses same-origin /api (proxied to backend); avoids CORS when using 127.0.0.1 vs localhost or LAN IPs.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8080
+        BACKEND_PROXY_URL: http://backend:8080
+        NEXT_PUBLIC_API_URL: ""
     container_name: ecomap-frontend
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      BACKEND_PROXY_URL: http://backend:8080
+      NEXT_PUBLIC_API_URL: ""
     ports:
       - "3000:3000"
     networks:
