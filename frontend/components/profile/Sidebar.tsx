@@ -23,8 +23,26 @@ const legend = [
   { color: "#ef4444", label: "0-40 Poor" },
 ];
 
-export default function Sidebar() {
-  const [active, setActive] = useState("heatmap");
+export type SidebarViewId = (typeof menuItems)[number]["id"];
+
+export interface SidebarProps {
+  /** When set, view selection is controlled by the parent (dashboard + simulation). */
+  activeView?: SidebarViewId;
+  onActiveViewChange?: (id: SidebarViewId) => void;
+}
+
+export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps = {}) {
+  const [internalActive, setInternalActive] = useState<SidebarViewId>("heatmap");
+  const controlled = activeView != null;
+  const active = controlled ? activeView : internalActive;
+
+  const setActive = (id: SidebarViewId) => {
+    if (controlled && onActiveViewChange) {
+      onActiveViewChange(id);
+    } else if (!controlled) {
+      setInternalActive(id);
+    }
+  };
   const [layers, setLayers] = useState({ heatmap: true, labels: true, poi: true });
   const [pois, setPois] = useState({ restaurants: true, retail: true, offices: true, entertain: false });
 

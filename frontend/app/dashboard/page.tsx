@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/profile/Header";
-import Sidebar from "@/components/profile/Sidebar";
+import Sidebar, { type SidebarViewId } from "@/components/profile/Sidebar";
 import Map from "@/components/profile/Map";
 import { getToken } from "@/lib/auth";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [sidebarView, setSidebarView] = useState<SidebarViewId>("heatmap");
 
   useEffect(() => {
     if (!getToken()) {
@@ -21,8 +22,8 @@ export default function DashboardPage() {
       <Header />
       <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-5">
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
-          <Sidebar />
-          <Map />
+          <Sidebar activeView={sidebarView} onActiveViewChange={setSidebarView} />
+          <Map simulationMode={sidebarView === "whatif"} />
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProfilePanel from "@/components/profile/ProfilePanel";
-import { clearToken } from "@/lib/auth";
+import { clearToken, getToken } from "@/lib/auth";
 import { getMyProfile } from "@/lib/api";
 
 export default function Header() {
@@ -16,10 +16,11 @@ export default function Header() {
     const loadProfile = async () => {
       try {
         const profile = await getMyProfile();
-        setInitials(getInitials(profile.name));
+        setInitials(getInitials(profile.companyName ?? profile.email));
       } catch {
-        clearToken();
-        router.replace("/login");
+        if (!getToken()) {
+          router.replace("/login");
+        }
       }
     };
     void loadProfile();

@@ -11,8 +11,7 @@ interface ProfilePanelProps {
 }
 
 interface FormState {
-  username: string;
-  fullName: string;
+  companyName: string;
   email: string;
 }
 
@@ -22,12 +21,11 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>({
-    username: "",
-    fullName: "",
+    companyName: "",
     email: "",
   });
 
-  const initials = useMemo(() => getInitials(form.fullName), [form.fullName]);
+  const initials = useMemo(() => getInitials(form.companyName || form.email), [form.companyName, form.email]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -53,11 +51,10 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
       try {
         const profile = await getMyProfile();
         setForm({
-          username: profile.username,
-          fullName: profile.name,
+          companyName: profile.companyName ?? "",
           email: profile.email,
         });
-        onProfileChange(getInitials(profile.name));
+        onProfileChange(getInitials(profile.companyName ?? profile.email));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load profile");
       } finally {
@@ -75,11 +72,9 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
     setSaving(true);
     try {
       const updated = await updateMyProfile({
-        username: form.username,
-        name: form.fullName,
-        email: form.email,
+        companyName: form.companyName,
       });
-      const nextInitials = getInitials(updated.name);
+      const nextInitials = getInitials(updated.companyName ?? updated.email);
       onProfileChange(nextInitials);
       onClose();
       setToast(true);
@@ -160,7 +155,7 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
               {initials || "?"}
             </div>
             <div>
-              <p style={{ color: "#fff", fontWeight: 700, fontSize: "17px", lineHeight: 1.2 }}>{form.fullName || "-"}</p>
+              <p style={{ color: "#fff", fontWeight: 700, fontSize: "17px", lineHeight: 1.2 }}>{form.companyName || "-"}</p>
               <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "13px", marginTop: "4px" }}>{form.email || "-"}</p>
             </div>
           </div>
@@ -168,9 +163,8 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
 
         <Section title="Profile">
           {error && <p style={{ color: "#dc2626", fontSize: "12px", marginBottom: "8px" }}>{error}</p>}
-          <Field label="Username" value={form.username} onChange={(v) => set("username", v)} disabled={loading || saving} />
-          <Field label="Full name" value={form.fullName} onChange={(v) => set("fullName", v)} disabled={loading || saving} />
-          <Field label="Email" type="email" value={form.email} onChange={(v) => set("email", v)} disabled={loading || saving} />
+          <Field label="Company name" value={form.companyName} onChange={(v) => set("companyName", v)} disabled={loading || saving} />
+          <Field label="Email" type="email" value={form.email} onChange={() => {}} disabled />
         </Section>
 
         <div style={{ padding: "16px 22px 22px", display: "flex", gap: "10px" }}>

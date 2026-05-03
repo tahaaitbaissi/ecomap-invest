@@ -16,7 +16,12 @@ export interface BoundingBox {
 
 export async function fetchPoisInBbox(bbox: BoundingBox): Promise<PoiDto[]> {
   const { northEast: ne, southWest: sw } = bbox;
-  const bboxParam = `${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
-  const response = await axios.get<PoiDto[]>(`/api/v1/poi?bbox=${bboxParam}`);
+  const params = new URLSearchParams({
+    minX: String(sw.lng),
+    minY: String(sw.lat),
+    maxX: String(ne.lng),
+    maxY: String(ne.lat),
+  });
+  const response = await axios.get<PoiDto[]>(`/api/v1/poi?${params.toString()}`);
   return response.data;
 }

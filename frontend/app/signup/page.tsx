@@ -27,7 +27,11 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const res = await register({ name, username, email, password });
+      const res = await register({
+        email,
+        password,
+        companyName: name.trim() || username.trim() || "EcoMap account",
+      });
       setToken(res.token);
       router.replace("/dashboard");
     } catch (err) {

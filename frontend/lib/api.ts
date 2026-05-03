@@ -12,21 +12,40 @@ interface RawAuthResponse {
   tokenType?: string;
 }
 
+/** Matches backend {@code UserProfileDTO} */
 export interface UserProfile {
-  id: number;
-  username: string;
+  id: string;
   email: string;
-  name: string;
-  role: "USER" | "ADMIN";
+  companyName: string | null;
+  role: string;
+  createdAt?: string;
 }
 
 export interface UpdateProfilePayload {
-  username?: string;
-  email?: string;
-  name?: string;
+  companyName?: string;
+  currentPassword?: string;
+  newPassword?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+/** Same-origin proxy by default (see next.config rewrites). */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.trim() ?? "";
+
+function extractErrorMessage(data: unknown, fallback: string): string {
+  if (typeof data === "string") {
+    return data || fallback;
+  }
+  if (!data || typeof data !== "object") {
+    return fallback;
+  }
+  const o = data as Record<string, unknown>;
+  if (typeof o.message === "string" && o.message.trim()) {
+    return o.message;
+  }
+  if (typeof o.error === "string" && o.error.trim()) {
+    return o.error;
+  }
+  return fallback;
+}
 
 async function apiRequest<T>(
   path: string,
@@ -50,10 +69,17 @@ async function apiRequest<T>(
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
 
   if (!response.ok) {
-    const message = typeof data === "string" ? data : data?.message ?? "Request failed";
+    const message = extractErrorMessage(data, "Request failed");
     if (response.status === 401) {
       clearToken();
     }
@@ -70,15 +96,19 @@ export function login(email: string, password: string): Promise<AuthResponse> {
   }).then(normalizeAuthResponse);
 }
 
+/** Backend {@link RegisterRequest}: email, password, companyName */
 export function register(payload: {
-  username: string;
   email: string;
-  name: string;
   password: string;
+  companyName: string;
 }): Promise<AuthResponse> {
   return apiRequest<RawAuthResponse>("/api/v1/auth/register", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      email: payload.email,
+      password: payload.password,
+      companyName: payload.companyName,
+    }),
   }).then(normalizeAuthResponse);
 }
 
@@ -87,10 +117,14 @@ export function getMyProfile(): Promise<UserProfile> {
 }
 
 export function updateMyProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  return apiRequest<UserProfile>("/api/v1/users/me", {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  }, true);
+  return apiRequest<UserProfile>(
+    "/api/v1/users/me",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
 }
 
 function normalizeAuthResponse(raw: RawAuthResponse): AuthResponse {
