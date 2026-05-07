@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface PoiRepository extends JpaRepository<Poi, UUID> {
+public interface PoiRepository extends JpaRepository<Poi, UUID>, JpaSpecificationExecutor<Poi> {
     Optional<Poi> findByOsmId(String osmId);
 
     boolean existsByOsmId(String osmId);
@@ -139,4 +140,7 @@ public interface PoiRepository extends JpaRepository<Poi, UUID> {
             LIMIT :limit
             """, nativeQuery = true)
     List<Poi> findTopPoisWithinHex(@Param("h3Index") String h3Index, @Param("limit") int limit);
+
+    // Used by admin pageable search (filters + sort + pagination).
+    // Note: spatial bbox filter is implemented via JPA Specification (ST_Within + ST_MakeEnvelope).
 }

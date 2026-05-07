@@ -74,7 +74,7 @@ export default function MapSearchBar() {
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-3 py-2 shadow-sm backdrop-blur-md">
+      <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.04)] px-3 py-2 shadow-sm backdrop-blur-md">
         <SearchIcon />
         <input
           value={query}
@@ -106,7 +106,7 @@ export default function MapSearchBar() {
             }
           }}
           placeholder="Search address… (e.g. Casablanca, Maarif, Anfa)"
-          className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-white/70 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm text-[color:var(--color-text-primary)] placeholder:text-[color:var(--color-text-muted)] focus:outline-none"
           aria-label="Search address"
         />
         {query.trim().length > 0 ? (
@@ -118,7 +118,7 @@ export default function MapSearchBar() {
               setActiveIdx(0);
               setOpen(false);
             }}
-            className="rounded-lg p-1 text-white/80 transition hover:bg-white/15 hover:text-white"
+            className="rounded-lg p-1 text-[color:var(--color-text-secondary)] transition hover:bg-[color:rgba(234,240,255,0.06)] hover:text-[color:var(--color-text-primary)]"
             aria-label="Clear search"
           >
             <XIcon />
@@ -128,19 +128,19 @@ export default function MapSearchBar() {
 
       {showDropdown && (
         <div
-          className="absolute left-0 right-0 top-[calc(100%+8px)] z-[var(--app-shell-z-popover)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+          className="absolute left-0 right-0 top-[calc(100%+8px)] z-[var(--app-shell-z-popover)] overflow-hidden rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] shadow-xl"
           role="listbox"
           aria-label="Search results"
         >
           {loading && (
-            <div className="flex items-center gap-2 px-3 py-2 text-xs text-slate-600">
-              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+            <div className="flex items-center gap-2 px-3 py-2 text-xs text-[color:var(--color-text-secondary)]">
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[color:var(--color-border)] border-t-[color:var(--color-accent)]" />
               Searching…
             </div>
           )}
 
           {!loading && trimmed.length >= 3 && results.length === 0 && (
-            <div className="px-3 py-2 text-xs text-slate-600">No results.</div>
+            <div className="px-3 py-2 text-xs text-[color:var(--color-text-secondary)]">No results.</div>
           )}
 
           {!loading &&
@@ -154,14 +154,14 @@ export default function MapSearchBar() {
                   onClick={() => commit(r)}
                   className={[
                     "flex w-full items-start gap-2 px-3 py-2 text-left text-sm",
-                    active ? "bg-slate-50" : "bg-white",
-                    "hover:bg-slate-50",
+                    active ? "bg-[color:rgba(234,240,255,0.04)]" : "bg-transparent",
+                    "hover:bg-[color:rgba(234,240,255,0.04)]",
                   ].join(" ")}
                   role="option"
                   aria-selected={active}
                 >
                   <PinIcon />
-                  <span className="line-clamp-2 text-slate-800">{r.displayName}</span>
+                  <span className="line-clamp-2 text-[color:var(--color-text-primary)]">{r.displayName}</span>
                 </button>
               );
             })}
@@ -173,7 +173,7 @@ export default function MapSearchBar() {
 
 function SearchIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-white/85">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-[color:var(--color-text-secondary)]">
       <path
         d="M21 21l-4.3-4.3m1.8-5.2a7 7 0 11-14 0 7 7 0 0114 0z"
         stroke="currentColor"
@@ -187,7 +187,7 @@ function SearchIcon() {
 
 function PinIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-slate-500">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-[color:var(--color-text-muted)]">
       <path
         d="M12 22s7-4.4 7-11a7 7 0 10-14 0c0 6.6 7 11 7 11z"
         stroke="currentColor"

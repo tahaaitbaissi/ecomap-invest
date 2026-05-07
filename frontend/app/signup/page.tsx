@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import PageShell from "@/components/ui/PageShell";
+import { Button } from "@/components/ui/Button";
 import { register } from "@/lib/api";
 import { getToken, setToken } from "@/lib/auth";
 
@@ -42,78 +46,76 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center px-4" style={{ background: "radial-gradient(circle at 80% 10%, #bae6fd 0%, #f0f9ff 35%, #dbeafe 100%)" }}>
-      <div className="w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 bg-white/95 p-8 backdrop-blur">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Create your account</h1>
-        <p className="text-slate-600 mt-1">Join EcoMap Invest and start exploring.</p>
+    <main className="min-h-[100svh] py-10">
+      <PageShell className="grid place-items-center">
+        <Card className="w-full max-w-lg p-7 md:p-8">
+          <h1 className="text-3xl font-black tracking-tight">Create your account</h1>
+          <p className="mt-1 text-[color:var(--color-text-secondary)]">Join EcoMap Invest and start exploring.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={onSubmit} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-slate-600">Full name</label>
-            <input
+            <label className="text-sm font-semibold text-[color:var(--color-text-secondary)]">Full name</label>
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1"
               placeholder="Jane Doe"
             />
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-600">Username</label>
-            <input
+            <label className="text-sm font-semibold text-[color:var(--color-text-secondary)]">Username</label>
+            <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1"
               placeholder="jane.d"
             />
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-600">Email</label>
-            <input
+            <label className="text-sm font-semibold text-[color:var(--color-text-secondary)]">Email</label>
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1"
               placeholder="name@example.com"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-slate-600">Password</label>
-            <input
+            <label className="text-sm font-semibold text-[color:var(--color-text-secondary)]">Password</label>
+            <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1"
               placeholder="Create a strong password"
             />
           </div>
 
-          {error ? <p className="md:col-span-2 text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="md:col-span-2 text-sm text-red-400">{error}</p> : null}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="md:col-span-2 w-full rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 transition disabled:opacity-70"
-          >
+          <Button type="submit" disabled={loading} variant="primary" className="md:col-span-2 w-full">
             {loading ? "Creating account..." : "Create account"}
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-5 text-sm text-slate-600">
+        <p className="mt-5 text-sm text-[color:var(--color-text-secondary)]">
           Already have an account?{" "}
-          <Link className="text-blue-700 hover:underline font-medium" href="/login">
+          <Link className="font-semibold text-[color:var(--color-text-primary)] hover:opacity-90" href="/login">
             Sign in
           </Link>
         </p>
-      </div>
+        </Card>
+      </PageShell>
     </main>
   );
 }

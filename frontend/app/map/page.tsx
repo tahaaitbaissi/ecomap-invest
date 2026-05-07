@@ -19,11 +19,11 @@ export default function MapPage() {
   }, []);
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-gray-950">
-      <header className="absolute left-0 right-0 top-0 z-[1000] flex items-center justify-between border-b border-gray-800 bg-gray-950/80 px-6 py-3 backdrop-blur-sm">
-        <span className="text-sm font-semibold tracking-wide text-white">EcoMap Invest</span>
-        <span className="text-xs text-gray-500">
-          {pois.length > 0 ? `${pois.length} POIs in view` : "Casablanca Pilot - v0.1"}
+    <main className="relative h-screen w-screen overflow-hidden bg-[color:var(--color-bg-page)]">
+      <header className="absolute left-0 right-0 top-0 z-[1000] flex items-center justify-between border-b border-[color:var(--color-border)] bg-[color:var(--color-bg-page)]/88 px-6 py-3 backdrop-blur-sm">
+        <span className="text-sm font-extrabold tracking-wide text-[color:var(--color-text-primary)]">EcoMap Invest</span>
+        <span className="text-xs text-[color:var(--color-text-muted)]">
+          {pois.length > 0 ? `${pois.length} POIs in view` : "Ready"}
         </span>
       </header>
       <div className="h-full w-full pt-12">

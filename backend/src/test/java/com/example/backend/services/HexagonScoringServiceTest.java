@@ -315,7 +315,7 @@ class HexagonScoringServiceTest {
         verify(raw, never()).computeRaw(anyString(), any());
         verify(vops)
                 .multiGet(argThat(keys -> keys.size() == 1
-                        && keys.iterator().next().startsWith("score:v2:" + profileId + ":")));
+                        && keys.iterator().next().startsWith("score:v3:p1d1:" + profileId + ":")));
     }
 
     private static HexagonScoringService newService(
@@ -327,7 +327,10 @@ class HexagonScoringServiceTest {
             RawScoreRefBounds refStub) {
         ProfileScoreScaleService scale = mock(ProfileScoreScaleService.class);
         Mockito.lenient().when(scale.resolveRefBounds(any(UUID.class), any())).thenReturn(refStub);
-        return new HexagonScoringService(h3, raw, persist, h3HexagonRepository, redis, scale);
+        var versions = mock(com.example.backend.services.admin.ScoreCacheVersionService.class);
+        Mockito.lenient().when(versions.getPoiVersion()).thenReturn(1L);
+        Mockito.lenient().when(versions.getDemoVersion()).thenReturn(1L);
+        return new HexagonScoringService(h3, raw, persist, h3HexagonRepository, redis, scale, versions);
     }
 
     private static void wireDefaults(HexagonScoringService svc) {

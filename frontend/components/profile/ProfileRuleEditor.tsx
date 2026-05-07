@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ProfileTagOption, TagWeightDto } from "@/services/api/profileService";
+import Input from "@/components/ui/Input";
 
 type RuleErrorMap = Record<number, string | undefined>;
 
@@ -56,31 +57,31 @@ export default function ProfileRuleEditor({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <section className="rounded-2xl border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] p-4">
       <div className="mb-3">
-        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-        <p className="text-xs text-slate-500">{description}</p>
+        <h3 className="text-sm font-extrabold text-[color:var(--color-text-primary)]">{title}</h3>
+        <p className="text-xs text-[color:var(--color-text-secondary)]">{description}</p>
       </div>
 
-      <input
+      <Input
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         placeholder="Search supported tags"
-        className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+        className="mb-3"
       />
 
       <div className="space-y-3">
         {rules.map((rule, index) => {
           const selected = byTag.get(rule.tag);
           return (
-            <div key={`${rule.tag}-${index}`} className="rounded-xl border border-slate-200 bg-white p-3">
+            <div key={`${rule.tag}-${index}`} className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-3">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_auto]">
-                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                <label className="flex flex-col gap-1 text-xs font-semibold text-[color:var(--color-text-secondary)]">
                   Rule tag
                   <select
                     value={rule.tag}
                     onChange={(e) => updateRule(index, { tag: e.target.value })}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500"
+                    className="rounded-xl border border-[color:var(--color-border)] bg-transparent px-3 py-2 text-sm font-normal text-[color:var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[color:rgba(47,107,255,0.35)]"
                   >
                     {!selected && rule.tag && (
                       <option value={rule.tag} disabled>
@@ -99,7 +100,7 @@ export default function ProfileRuleEditor({
                   </select>
                 </label>
 
-                <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                <label className="flex flex-col gap-1 text-xs font-semibold text-[color:var(--color-text-secondary)]">
                   Weight
                   <input
                     type="number"
@@ -108,39 +109,39 @@ export default function ProfileRuleEditor({
                     step={0.1}
                     value={rule.weight}
                     onChange={(e) => updateRule(index, { weight: Number(e.target.value) })}
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal outline-none focus:border-blue-500"
+                    className="rounded-xl border border-[color:var(--color-border)] bg-transparent px-3 py-2 text-sm font-normal text-[color:var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[color:rgba(47,107,255,0.35)]"
                   />
                 </label>
 
                 <button
                   type="button"
                   onClick={() => removeRule(index)}
-                  className="self-end rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                  className="self-end rounded-xl border border-red-500/30 px-3 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/10"
                 >
                   Remove
                 </button>
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                {selected && <span className="text-slate-500">{selected.description}</span>}
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-500">
+                {selected && <span className="text-[color:var(--color-text-secondary)]">{selected.description}</span>}
+                <span className="rounded-full border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] px-2 py-0.5 font-mono text-[11px] text-[color:var(--color-text-muted)]">
                   {rule.tag || "No tag selected"}
                 </span>
               </div>
 
-              {errors[index] && <p className="mt-2 text-xs font-semibold text-red-600">{errors[index]}</p>}
+              {errors[index] && <p className="mt-2 text-xs font-semibold text-red-300">{errors[index]}</p>}
             </div>
           );
         })}
       </div>
 
-      {emptyError && <p className="mt-3 text-xs font-semibold text-red-600">{emptyError}</p>}
+      {emptyError && <p className="mt-3 text-xs font-semibold text-red-300">{emptyError}</p>}
 
       <button
         type="button"
         disabled={!fallbackTag}
         onClick={() => onChange([...rules, { tag: fallbackTag, weight: 1 }])}
-        className="mt-3 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:border-slate-200 disabled:text-slate-400"
+        className="ds-btn ds-btn-secondary mt-3"
       >
         Add {title.toLowerCase().replace(/s$/, "")}
       </button>

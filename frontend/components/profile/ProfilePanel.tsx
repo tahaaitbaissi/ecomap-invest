@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { getMyProfile, updateMyProfile } from "@/lib/api";
+import Input from "@/components/ui/Input";
 
 interface ProfilePanelProps {
   open: boolean;
@@ -90,113 +91,58 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
     <>
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 40,
-          background: "rgba(15,23,42,0.45)",
-          backdropFilter: "blur(4px)",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.2s ease",
-        }}
+        className={[
+          "fixed inset-0 z-[var(--app-shell-z-popover)] bg-black/50 backdrop-blur-sm transition-opacity",
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+        ].join(" ")}
       />
 
       <div
-        style={{
-          position: "fixed",
-          top: "80px",
-          right: "24px",
-          zIndex: 50,
-          width: "400px",
-          maxHeight: "calc(100vh - 100px)",
-          overflowY: "auto",
-          background: "#ffffff",
-          borderRadius: "20px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 20px 60px rgba(26,86,219,0.18), 0 4px 16px rgba(0,0,0,0.08)",
-          opacity: open ? 1 : 0,
-          transform: open ? "translateY(0) scale(1)" : "translateY(-12px) scale(0.97)",
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 0.22s cubic-bezier(.22,.68,0,1.2), transform 0.22s cubic-bezier(.22,.68,0,1.2)",
-        }}
+        className={[
+          "fixed right-6 top-[80px] z-[calc(var(--app-shell-z-popover)+1)] w-[400px] max-w-[calc(100vw-48px)] overflow-auto",
+          "max-h-[calc(100vh-100px)] rounded-[20px] border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]",
+          "shadow-[0_20px_60px_rgba(0,0,0,0.25)] transition",
+          open ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 -translate-y-3 scale-[0.97] pointer-events-none",
+        ].join(" ")}
       >
         <div
-          style={{
-            background: "linear-gradient(135deg, #1a56db 0%, #3b82f6 60%, #818cf8 100%)",
-            padding: "24px 22px 20px",
-            position: "relative",
-          }}
+          className="relative rounded-t-[20px] border-b border-[color:rgba(234,240,255,0.08)] bg-[color:rgba(47,107,255,0.15)] px-[22px] pb-5 pt-6"
         >
           <button
             onClick={onClose}
-            style={{
-              position: "absolute",
-              top: "14px",
-              right: "14px",
-              width: "30px",
-              height: "30px",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              border: "none",
-              color: "#fff",
-              fontSize: "16px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.04)] text-[color:var(--color-text-primary)] hover:bg-[color:rgba(234,240,255,0.06)]"
           >
-            x
+            ×
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", border: "3px solid rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "22px", color: "#fff" }}>
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[color:rgba(234,240,255,0.22)] bg-[color:rgba(234,240,255,0.04)] text-[22px] font-extrabold text-[color:var(--color-text-primary)]">
               {initials || "?"}
             </div>
             <div>
-              <p style={{ color: "#fff", fontWeight: 700, fontSize: "17px", lineHeight: 1.2 }}>{form.companyName || "-"}</p>
-              <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "13px", marginTop: "4px" }}>{form.email || "-"}</p>
+              <p className="text-[17px] font-extrabold leading-tight text-[color:var(--color-text-primary)]">{form.companyName || "-"}</p>
+              <p className="mt-1 text-[13px] text-[color:var(--color-text-secondary)]">{form.email || "-"}</p>
             </div>
           </div>
         </div>
 
         <Section title="Profile">
-          {error && <p style={{ color: "#dc2626", fontSize: "12px", marginBottom: "8px" }}>{error}</p>}
+          {error && <p className="text-[12px] text-red-300">{error}</p>}
           <Field label="Company name" value={form.companyName} onChange={(v) => set("companyName", v)} disabled={loading || saving} />
           <Field label="Email" type="email" value={form.email} onChange={() => {}} disabled />
         </Section>
 
-        <div style={{ padding: "16px 22px 22px", display: "flex", gap: "10px" }}>
+        <div className="flex gap-3 px-[22px] pb-[22px] pt-4">
           <button
             onClick={onClose}
-            style={{
-              padding: "10px 18px",
-              borderRadius: "999px",
-              border: "1.5px solid #e2e8f0",
-              background: "transparent",
-              color: "#94a3b8",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
+            className="ds-btn ds-btn-secondary"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={loading || saving}
-            style={{
-              flex: 1,
-              padding: "10px",
-              borderRadius: "999px",
-              background: "linear-gradient(135deg, #1a56db, #3b82f6)",
-              color: "#fff",
-              border: "none",
-              fontWeight: 700,
-              fontSize: "14px",
-              cursor: "pointer",
-              opacity: loading || saving ? 0.7 : 1,
-            }}
+            className="ds-btn ds-btn-primary flex-1 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save"}
           </button>
@@ -204,24 +150,11 @@ export default function ProfilePanel({ open, onClose, onProfileChange }: Profile
       </div>
 
       <div
-        style={{
-          position: "fixed",
-          bottom: "32px",
-          left: "50%",
-          transform: `translateX(-50%) translateY(${toast ? "0" : "20px"})`,
-          background: "#16a34a",
-          color: "#fff",
-          padding: "11px 24px",
-          borderRadius: "999px",
-          fontWeight: 600,
-          fontSize: "14px",
-          boxShadow: "0 4px 20px rgba(22,163,74,0.35)",
-          opacity: toast ? 1 : 0,
-          pointerEvents: "none",
-          transition: "opacity 0.25s, transform 0.25s",
-          zIndex: 999,
-          whiteSpace: "nowrap",
-        }}
+        className={[
+          "fixed bottom-8 left-1/2 z-[999] -translate-x-1/2 rounded-full border border-emerald-500/30 bg-emerald-500/12",
+          "px-6 py-3 text-[14px] font-semibold text-emerald-200 shadow-[0_8px_30px_rgba(16,185,129,0.22)] transition",
+          toast ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-5 opacity-0",
+        ].join(" ")}
       >
         Profile updated successfully
       </div>
@@ -238,11 +171,11 @@ function getInitials(name: string): string {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={{ padding: "18px 22px", borderBottom: "1px solid #e2e8f0" }}>
-      <p style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "14px" }}>
+    <div className="border-b border-[color:var(--color-border)] px-[22px] py-[18px]">
+      <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.07em] text-[color:var(--color-text-muted)]">
         {title}
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>{children}</div>
+      <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
 }
@@ -250,35 +183,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Field({ label, type = "text", value, onChange, disabled = false }: { label: string; type?: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
-      <input
+      <label className="mb-1 block text-[12px] font-semibold text-[color:var(--color-text-secondary)]">{label}</label>
+      <Input
         type={type}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        style={{ ...inputStyle, opacity: disabled ? 0.7 : 1 }}
+        className={disabled ? "opacity-70" : ""}
       />
     </div>
   );
 }
-
-const labelStyle: CSSProperties = {
-  display: "block",
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "#94a3b8",
-  marginBottom: "5px",
-};
-
-const inputStyle: CSSProperties = {
-  width: "100%",
-  padding: "9px 12px",
-  border: "1.5px solid #e2e8f0",
-  borderRadius: "10px",
-  fontSize: "14px",
-  color: "#0f172a",
-  background: "#f8faff",
-  outline: "none",
-  transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
-  fontFamily: "inherit",
-};

@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import PageShell from "@/components/ui/PageShell";
+import { Button } from "@/components/ui/Button";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,38 +17,40 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center px-4" style={{ background: "radial-gradient(circle at 50% 0%, #cffafe 0%, #eff6ff 45%, #e2e8f0 100%)" }}>
-      <div className="w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 bg-white/95 p-8 backdrop-blur">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Reset password</h1>
-        <p className="text-slate-600 mt-1">Enter your email and we will send reset instructions.</p>
+    <main className="min-h-[100svh] py-10">
+      <PageShell className="grid place-items-center">
+        <Card className="w-full max-w-md p-7 md:p-8">
+          <h1 className="text-3xl font-black tracking-tight">Reset password</h1>
+          <p className="mt-1 text-[color:var(--color-text-secondary)]">Enter your email and we will send reset instructions.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="text-sm font-semibold text-slate-600">Email</label>
-            <input
+            <label className="text-sm font-semibold text-[color:var(--color-text-secondary)]">Email</label>
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1"
               placeholder="name@example.com"
             />
           </div>
 
-          {sent ? <p className="text-sm text-emerald-600">If this email exists, reset instructions have been sent.</p> : null}
+          {sent ? <p className="text-sm text-emerald-400">If this email exists, reset instructions have been sent.</p> : null}
 
-          <button type="submit" className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 transition">
+          <Button type="submit" variant="primary" className="w-full">
             Send instructions
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-5 text-sm text-slate-600">
+        <p className="mt-5 text-sm text-[color:var(--color-text-secondary)]">
           Back to{" "}
-          <Link className="text-blue-700 hover:underline font-medium" href="/login">
+          <Link className="font-semibold text-[color:var(--color-text-primary)] hover:opacity-90" href="/login">
             Sign in
           </Link>
         </p>
-      </div>
+        </Card>
+      </PageShell>
     </main>
   );
 }

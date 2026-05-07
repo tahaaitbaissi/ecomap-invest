@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Card from "@/components/ui/Card";
 import { fetchMyProfilesAsList } from "@/services/api/profileService";
 import { useStore } from "@/store/useStore";
 
@@ -23,24 +24,15 @@ export default function ActiveProfileWidget() {
   }, [profiles.length, setProfiles]);
 
   return (
-    <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ border: "1px solid #e2e8f0", borderRadius: "12px", background: "#f8fafc", padding: "10px" }}>
-        <div style={{ fontSize: "11px", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
-          Active profile
-        </div>
+    <div className="px-3">
+      <div className="flex flex-col gap-2">
+        <Card className="p-3">
+          <div className="mb-2 text-[11px] font-extrabold text-[color:var(--color-text-muted)]">Active profile</div>
         {profiles.length > 0 ? (
           <select
             value={profileId ?? ""}
             onChange={(e) => setProfileId(e.target.value || null)}
-            style={{
-              width: "100%",
-              border: "1px solid #cbd5e1",
-              borderRadius: "8px",
-              padding: "7px",
-              fontSize: "12px",
-              color: "#334155",
-              background: "#fff",
-            }}
+            className="w-full rounded-[12px] border border-[color:var(--color-border)] bg-transparent px-3 py-2 text-[13px] font-semibold text-[color:var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[color:rgba(47,107,255,0.35)]"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
@@ -49,32 +41,20 @@ export default function ActiveProfileWidget() {
             ))}
           </select>
         ) : (
-          <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.5 }}>
+          <p className="text-[12px] leading-relaxed text-[color:var(--color-text-secondary)]">
             {loading ? "Loading profiles..." : "No scoring profile yet."}
           </p>
         )}
         {selected && (
-          <p style={{ marginTop: "7px", fontSize: "10px", color: "#64748b", lineHeight: 1.4 }}>
+          <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
             {selected.drivers.length} drivers · {selected.competitors.length} competitors
           </p>
         )}
+        </Card>
+        <Link href="/dashboard/profiles" className="ds-btn ds-btn-primary w-full">
+          Manage profiles
+        </Link>
       </div>
-      <Link
-        href="/dashboard/profiles"
-        style={{
-          display: "block",
-          textAlign: "center",
-          borderRadius: "10px",
-          background: "#1a56db",
-          color: "#fff",
-          padding: "8px 10px",
-          fontSize: "12px",
-          fontWeight: 700,
-          textDecoration: "none",
-        }}
-      >
-        Manage profiles
-      </Link>
     </div>
   );
 }

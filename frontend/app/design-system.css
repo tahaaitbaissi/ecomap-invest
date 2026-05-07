@@ -1,0 +1,214 @@
+/* EcoMap Invest Design System
+   Token-first foundation for all marketing/landing UI.
+
+   Rules:
+   - No pure #000 / #fff backgrounds; avoid eye-straining extremes.
+   - Prefer 1px borders + subtle shadows over heavy glows.
+   - Components read from semantic tokens, not hardcoded Tailwind colors.
+*/
+
+/* Default = dark (keeps existing look). Theme toggler overrides via data-theme. */
+:root {
+  color-scheme: dark;
+  /* 60/30/10 color hierarchy (cinematic dark + blue accent) */
+  --color-bg-page: #070a12;
+  --color-bg-card: #0b1020;
+  --color-bg-elev: #101a33;
+
+  --color-text-primary: #eaf0ff;
+  --color-text-secondary: #a7b3d6;
+  --color-text-muted: #7c89b2;
+
+  --color-accent: #2f6bff;
+  --color-accent-2: #33d3ff;
+  --color-on-accent: #f7faff;
+  --color-accent-surface: rgba(47, 107, 255, 0.12);
+  --color-accent-border: rgba(47, 107, 255, 0.26);
+
+  --color-border: rgba(234, 240, 255, 0.08);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.22);
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* Type scale (paired with next/font variables in layout.tsx) */
+  --fs-h1: 48px;
+  --lh-h1: 1.05;
+  --fs-h2: 36px;
+  --lh-h2: 1.12;
+  --fs-h3: 24px;
+  --lh-h3: 1.2;
+  --fs-body: 16px;
+  --lh-body: 1.55;
+  --fs-small: 14px;
+  --lh-small: 1.45;
+
+  /* Radii */
+  --radius-lg: 14px;
+  --radius-md: 12px;
+}
+
+/* Light theme tokens (auto + toggle) */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-bg-page: #f6f7fb;
+  --color-bg-card: #ffffff;
+  --color-bg-elev: #ffffff;
+
+  --color-text-primary: #0b1226;
+  --color-text-secondary: #3b4a73;
+  --color-text-muted: #6675a0;
+
+  --color-accent: #2f6bff;
+  --color-accent-2: #1aa7ff;
+  --color-on-accent: #f7faff;
+  --color-accent-surface: rgba(47, 107, 255, 0.10);
+  --color-accent-border: rgba(47, 107, 255, 0.22);
+
+  --color-border: rgba(11, 18, 38, 0.08);
+  --shadow-soft: 0 10px 30px rgba(11, 18, 38, 0.10);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Base */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-body), var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading), var(--font-body), var(--font-sans);
+}
+
+/* Component specs */
+.ds-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.ds-card-elev {
+  background: var(--color-bg-elev);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 16px;
+  font-family: var(--font-body), var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.ds-btn:active {
+  transform: translateY(1px);
+}
+
+.ds-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: 1px solid rgba(47, 107, 255, 0.35);
+}
+.ds-btn-primary:hover {
+  background: color-mix(in srgb, var(--color-accent) 92%, white 8%);
+}
+
+.ds-btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+.ds-btn-secondary:hover {
+  background: rgba(234, 240, 255, 0.04);
+}
+
+.ds-btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+.ds-btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: rgba(234, 240, 255, 0.04);
+}
+
+.ds-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: rgba(234, 240, 255, 0.03);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+/* Accent helpers */
+.ds-accent-underline {
+  position: relative;
+}
+.ds-accent-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-accent) 85%, transparent),
+    transparent
+  );
+  opacity: 1;
+  pointer-events: none;
+}
+
+.ds-accent-topbar {
+  position: relative;
+}
+.ds-accent-topbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-accent) 75%, transparent),
+    transparent
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+

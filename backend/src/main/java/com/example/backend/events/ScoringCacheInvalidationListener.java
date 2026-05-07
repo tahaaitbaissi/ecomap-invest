@@ -31,7 +31,7 @@ public class ScoringCacheInvalidationListener {
     public void onProfileGenerated(ProfileGeneratedEvent event) {
         UUID profileId = event.getProfileId();
         profileScoreScaleService.invalidate(profileId);
-        String pattern = "score:v2:" + profileId + ":*";
+        String pattern = "score:v3:*:" + profileId + ":*";
         ScanOptions options = ScanOptions.scanOptions().match(pattern).count(SCAN_COUNT).build();
 
         long deleted = 0;

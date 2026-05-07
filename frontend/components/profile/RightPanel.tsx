@@ -18,9 +18,10 @@ import { fetchZoneStats, type ZoneStatsResponse } from "@/services/api/analytics
 export default function RightPanel() {
   const activeView = useStore((s) => s.activeView);
   return (
-    <aside className="w-[280px] shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-4 pb-3 pt-5">
-        <h2 className="m-0 text-base font-bold text-slate-800">
+    <aside className="w-[320px] shrink-0 overflow-y-auto border-l border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
+      <div className="ds-accent-underline border-b border-[color:var(--color-border)] px-4 pb-3 pt-5">
+        <h2 className="m-0 flex items-center gap-2 text-base font-extrabold text-[color:var(--color-text-primary)]">
+          <span className="h-2 w-2 rounded-full bg-[color:var(--color-accent)]" />
           {activeView === "heatmap" ? "Hex Details"
             : activeView === "whatif" ? "What-if Simulation"
             : activeView === "analytics" ? "Analytics Dashboard"
@@ -84,7 +85,7 @@ function HexDetailsPanel() {
 
   if (!hex) {
     return (
-      <div style={{ padding: "32px 16px", textAlign: "center", color: "#94a3b8", fontSize: "13px", lineHeight: 1.7 }}>
+      <div className="px-4 py-8 text-center text-[13px] leading-relaxed text-[color:var(--color-text-muted)]">
         Cliquez sur un hexagone<br />pour voir les détails
       </div>
     );
@@ -123,29 +124,29 @@ function HexDetailsPanel() {
       <style>{`
       @keyframes slideInRight { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
     `}</style>
-      <div style={{ padding: "0 16px 20px", animation: "slideInRight 0.28s ease-out" }}>
-        <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a56db 0%, #2563eb 100%)", padding: "18px 16px", marginBottom: "16px", color: "#fff" }}>
-          <div style={{ fontSize: "11px", fontWeight: 600, opacity: 0.8, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Investment Score</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "12px" }}>
-            <span style={{ fontSize: "44px", fontWeight: 800, lineHeight: 1 }}>
+      <div className="px-4 pb-5" style={{ animation: "slideInRight 0.28s ease-out" }}>
+        <div className="mb-4 rounded-[14px] border border-[color:rgba(47,107,255,0.25)] bg-[color:rgba(47,107,255,0.12)] p-4">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-[color:var(--color-text-secondary)]">Investment Score</div>
+          <div className="mb-3 flex items-baseline gap-1">
+            <span className="text-[44px] font-extrabold leading-none text-[color:var(--color-text-primary)]">
               {scoreVal == null ? "—" : Math.round(scoreVal)}
             </span>
-            <span style={{ fontSize: "18px", opacity: 0.6 }}>/100</span>
+            <span className="text-[18px] text-[color:var(--color-text-muted)]">/100</span>
           </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 600 }}>{label}</span>
-            <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>Hex #{hexNum}</span>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.04)] px-2.5 py-1 text-[11px] font-semibold text-[color:var(--color-text-primary)]">{label}</span>
+            <span className="rounded-full border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.04)] px-2.5 py-1 text-[11px] text-[color:var(--color-text-secondary)]">Hex #{hexNum}</span>
             {ctx?.aggregatedFromGridLeaves ? (
-              <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>Σ {ctx.gridLeafCount} mailles rés. {ctx.gridLeafResolution}</span>
+              <span className="rounded-full border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.04)] px-2.5 py-1 text-[11px] text-[color:var(--color-text-secondary)]">Σ {ctx.gridLeafCount} mailles rés. {ctx.gridLeafResolution}</span>
             ) : null}
           </div>
         </div>
-        <div style={{ marginBottom: "14px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+        <div className="mb-3 rounded-[12px] border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] p-3">
+          <div className="mb-1 flex items-center gap-2">
             <InfoIcon />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>À propos du score</span>
+            <span className="text-[12px] font-extrabold text-[color:var(--color-text-primary)]">À propos du score</span>
           </div>
-          <p style={{ fontSize: "11px", color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+          <p className="m-0 text-[11px] leading-relaxed text-[color:var(--color-text-secondary)]">
             {explainBlocked
               ? "Sélectionnez un profil commercial pour scorer et expliquer cette cellule."
               : ctxLoading
@@ -153,7 +154,7 @@ function HexDetailsPanel() {
                 : ctxError ?? `Profil « ${selectedCommercialProfile?.name ?? ctx?.profileName ?? "—"} » — score affiché 0–100 après normalisation globale (voir « XAI » ci-dessous).`}
           </p>
           {ctx && !ctxLoading && (
-            <p style={{ fontSize: "10px", color: "#94a3b8", margin: "10px 0 0", lineHeight: 1.5 }}>
+            <p className="mt-2 text-[10px] leading-relaxed text-[color:var(--color-text-muted)]">
               Brut moyen (terrain){" "}
               <strong>{ctx.averageRawAcrossLeaves.toFixed(4)}</strong> ; plage stretch{" "}
               <strong>

@@ -1,19 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
+import { BarChart3, Bot, Layers3, Sparkles } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import ActiveProfileWidget from "@/components/profile/ActiveProfileWidget";
 
 const menuItems = [
-  { id: "heatmap", label: "Heatmap & Scoring", icon: HeatmapIcon },
-  { id: "whatif", label: "What-if Simulation", icon: WhatIfIcon },
-  { id: "analytics", label: "Analytics", icon: AnalyticsIcon },
-  { id: "ai", label: "AI Assistant", icon: AIIcon },
+  { id: "heatmap", label: "Heatmap & Scoring", icon: Layers3 },
+  { id: "whatif", label: "What-if Simulation", icon: Sparkles },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "ai", label: "AI Assistant", icon: Bot },
 ] as const;
 
 const poiItems = [
-  { id: "drivers", label: "Drivers", icon: "🟢" },
-  { id: "competitors", label: "Competitors", icon: "🔴" },
+  { id: "drivers", label: "Drivers" },
+  { id: "competitors", label: "Competitors" },
 ] as const;
 
 const legend = [
@@ -55,7 +56,7 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
 
   return (
     <aside
-      className="w-[220px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white py-5"
+      className="w-[240px] shrink-0 overflow-y-auto border-r border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] py-5"
     >
       <Section title="View Mode">
         {menuItems.map((item) => {
@@ -67,11 +68,17 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
               type="button"
               onClick={() => setView(item.id)}
               className={[
-                "mx-2 flex w-[calc(100%-16px)] items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] transition",
-                isActive ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100",
+                "relative mx-2 flex w-[calc(100%-16px)] items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] transition",
+                isActive
+                  ? [
+                      "bg-[color:var(--color-accent-surface)] text-[color:var(--color-text-primary)] ring-1 ring-[color:var(--color-accent-border)]",
+                      "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full",
+                      "before:bg-[color:var(--color-accent)]",
+                    ].join(" ")
+                  : "text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]",
               ].join(" ")}
             >
-              <Icon active={isActive} />
+              <Icon className={["h-4 w-4", isActive ? "text-[color:var(--color-text-primary)]" : "text-[color:var(--color-text-muted)]"].join(" ")} />
               {item.label}
             </button>
           );
@@ -86,15 +93,7 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
         ].map(({ label, checked, onChange }) => (
           <label
             key={label}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "9px",
-              cursor: "pointer",
-              padding: "3px 16px",
-              fontSize: "13.5px",
-              color: "#374151",
-            }}
+            className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
           >
             <Checkbox checked={checked} onChange={onChange} />
             {label}
@@ -106,25 +105,16 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
         {poiItems.map((poi) => (
           <label
             key={poi.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "9px",
-              cursor: "pointer",
-              padding: "3px 16px",
-              fontSize: "13.5px",
-              color: "#374151",
-            }}
+            className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
           >
             <Checkbox
               checked={poiBusinessFilters[poi.id as keyof typeof poiBusinessFilters]}
               onChange={() => togglePoiBusinessFilter(poi.id as keyof typeof poiBusinessFilters)}
             />
-            <span style={{ fontSize: "14px" }}>{poi.icon}</span>
             {poi.label}
           </label>
         ))}
-        <div style={{ padding: "6px 16px 0", fontSize: "11px", color: "#94a3b8", lineHeight: 1.5 }}>
+        <div className="px-4 pt-1 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
           Filters apply when a commercial profile is active: POIs are shown if they match your profile’s driver/competitor tags.
         </div>
       </Section>
@@ -133,24 +123,11 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
         {legend.map((l) => (
           <div
             key={l.label}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "9px",
-              padding: "3px 16px",
-              fontSize: "13px",
-              color: "#374151",
-            }}
+            className="flex items-center gap-2 px-4 py-1 text-[13px] text-[color:var(--color-text-secondary)]"
           >
             <span
-              style={{
-                width: "16px",
-                height: "16px",
-                borderRadius: "4px",
-                background: l.color,
-                flexShrink: 0,
-                display: "inline-block",
-              }}
+              className="inline-block h-4 w-4 shrink-0 rounded"
+              style={{ background: l.color }}
             />
             {l.label}
           </div>
@@ -169,10 +146,10 @@ function Section({ title, children, last = false }: { title: string; children: R
     <div
       className={[
         "px-0",
-        last ? "mb-0 border-b-0 pb-0" : "mb-2 border-b border-slate-100 pb-2",
+        last ? "mb-0 border-b-0 pb-0" : "mb-2 border-b border-[color:var(--color-border)] pb-2",
       ].join(" ")}
     >
-      <p className="px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.07em] text-slate-400">{title}</p>
+      <p className="px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.07em] text-[color:var(--color-text-muted)]">{title}</p>
       <div className="flex flex-col gap-0.5">{children}</div>
     </div>
   );
@@ -191,58 +168,15 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
         }
       }}
       onClick={onChange}
-      style={{
-        width: "16px",
-        height: "16px",
-        borderRadius: "4px",
-        flexShrink: 0,
-        border: checked ? "none" : "1.5px solid #d1d5db",
-        background: checked ? "#1a56db" : "#fff",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "all 0.15s",
-        cursor: "pointer",
-      }}
+      className={[
+        "inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded transition",
+        checked
+          ? "bg-[color:var(--color-accent)] text-[color:var(--color-bg-card)]"
+          : "border border-[color:var(--color-border)] bg-transparent text-transparent hover:bg-[color:rgba(234,240,255,0.04)]",
+      ].join(" ")}
     >
-      {checked && (
-        <span style={{ color: "#fff", fontSize: "10px", fontWeight: 700, lineHeight: 1 }}>✓</span>
-      )}
+      {checked && <span className="text-[10px] font-extrabold leading-none">✓</span>}
     </span>
   );
 }
 
-function HeatmapIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? "#fff" : "#6b7280"} strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </svg>
-  );
-}
-function WhatIfIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? "#fff" : "#6b7280"} strokeWidth="2">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  );
-}
-function AnalyticsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? "#fff" : "#6b7280"} strokeWidth="2">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  );
-}
-function AIIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? "#fff" : "#6b7280"} strokeWidth="2">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-    </svg>
-  );
-}

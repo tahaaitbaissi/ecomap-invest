@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class HexagonScoringService {
 
     public static final String DEFAULT_PROFILE_CACHE_NS = "__none__";
-    private static final String RAW_CACHE_PREFIX = "score:v2:";
+    private static final String RAW_CACHE_PREFIX = "score:v3:";
 
     private final H3Core h3;
     private final HexagonRawScoringSupport rawScoringSupport;
@@ -42,6 +42,8 @@ public class HexagonScoringService {
     private final StringRedisTemplate stringRedisTemplate;
 
     private final ProfileScoreScaleService profileScoreScaleService;
+
+    private final com.example.backend.services.admin.ScoreCacheVersionService scoreCacheVersionService;
 
     @Value("${app.hexagon.max-cells:2000}")
     private int maxCells;
@@ -62,13 +64,15 @@ public class HexagonScoringService {
             HexagonScorePersistenceService hexagonScorePersistenceService,
             H3HexagonRepository h3HexagonRepository,
             @Nullable StringRedisTemplate stringRedisTemplate,
-            ProfileScoreScaleService profileScoreScaleService) {
+            ProfileScoreScaleService profileScoreScaleService,
+            com.example.backend.services.admin.ScoreCacheVersionService scoreCacheVersionService) {
         this.h3 = h3;
         this.rawScoringSupport = rawScoringSupport;
         this.hexagonScorePersistenceService = hexagonScorePersistenceService;
         this.h3HexagonRepository = h3HexagonRepository;
         this.stringRedisTemplate = stringRedisTemplate;
         this.profileScoreScaleService = profileScoreScaleService;
+        this.scoreCacheVersionService = scoreCacheVersionService;
     }
 
     @Transactional(readOnly = true)
@@ -282,8 +286,11 @@ public class HexagonScoringService {
     private Double[] resolveChildRawScores(UUID profileId, HexScoringConfig cfg, List<String> h3IndexStrings) {
         int n = h3IndexStrings.size();
         String cacheNs = profileId.toString();
+        long poiV = scoreCacheVersionService.getPoiVersion();
+        long demoV = scoreCacheVersionService.getDemoVersion();
+        String cachePrefix = RAW_CACHE_PREFIX + "p" + poiV + "d" + demoV + ":";
         List<String> cacheKeys =
-                h3IndexStrings.stream().map(hi -> RAW_CACHE_PREFIX + cacheNs + ":" + hi).toList();
+                h3IndexStrings.stream().map(hi -> cachePrefix + cacheNs + ":" + hi).toList();
 
         Double[] preNormalized = new Double[n];
         boolean[] fromRedis = new boolean[n];

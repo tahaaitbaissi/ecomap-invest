@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/profile/Header";
 import ProfileRuleEditor from "@/components/profile/ProfileRuleEditor";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import PageShell from "@/components/ui/PageShell";
+import { Button } from "@/components/ui/Button";
 import { getToken } from "@/lib/auth";
 import {
   archiveDynamicProfile,
@@ -221,40 +225,41 @@ export default function CommercialProfilesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[color:var(--color-bg-page)]">
       <Header />
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 py-6">
+      <main className="py-6">
+        <PageShell className="flex w-full flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Dashboard</p>
-            <h1 className="text-2xl font-bold text-slate-900">Commercial Profiles</h1>
-            <p className="text-sm text-slate-500">Manage the scoring profiles used by heatmaps and simulations.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">Dashboard</p>
+            <h1 className="text-2xl font-extrabold text-[color:var(--color-text-primary)]">Commercial Profiles</h1>
+            <p className="text-sm text-[color:var(--color-text-secondary)]">Manage the scoring profiles used by heatmaps and simulations.</p>
           </div>
-          <Link href="/dashboard" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+          <Link href="/dashboard" className="ds-btn ds-btn-secondary">
             Back to map
           </Link>
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
         )}
 
         <section className="grid min-h-[620px] gap-5 lg:grid-cols-[360px_1fr]">
-          <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-4 rounded-2xl bg-slate-50 p-4">
-              <h2 className="mb-2 text-sm font-bold text-slate-800">Generate profile</h2>
+          <aside className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4">
+            <div className="mb-4 rounded-2xl border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] p-4">
+              <h2 className="mb-2 text-sm font-extrabold text-[color:var(--color-text-primary)]">Generate profile</h2>
               <textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 rows={4}
                 placeholder="Describe a business concept, e.g. pharmacy near clinics and hospitals"
-                className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 outline-none focus:border-blue-500"
+                className="w-full resize-none rounded-xl border border-[color:var(--color-border)] bg-transparent p-3 text-sm text-[color:var(--color-text-primary)] outline-none placeholder:text-[color:var(--color-text-muted)] focus:ring-2 focus:ring-[color:rgba(47,107,255,0.35)]"
               />
               <button
                 type="button"
                 disabled={saving || !query.trim()}
                 onClick={() => void generate()}
-                className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
+                className="ds-btn ds-btn-primary mt-3 w-full disabled:opacity-60"
               >
                 {saving ? "Working..." : "Generate new profile"}
               </button>
@@ -264,13 +269,13 @@ export default function CommercialProfilesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search profiles"
-              className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              className="mb-3"
             />
 
             <div className="space-y-2">
-              {loading && <p className="text-sm text-slate-500">Loading profiles...</p>}
+              {loading && <p className="text-sm text-[color:var(--color-text-secondary)]">Loading profiles...</p>}
               {!loading && filtered.length === 0 && (
-                <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+                <p className="rounded-xl border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] p-4 text-sm text-[color:var(--color-text-secondary)]">
                   No profiles yet. Generate your first scoring profile above.
                 </p>
               )}
@@ -282,59 +287,67 @@ export default function CommercialProfilesPage() {
                     key={profile.id}
                     type="button"
                     onClick={() => setSelectedId(profile.id)}
-                    className={`w-full rounded-xl border p-3 text-left transition ${
-                      selectedRow ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
-                    }`}
+                    className={[
+                      "w-full rounded-xl border p-3 text-left transition",
+                      "border-[color:var(--color-border)]",
+                      selectedRow
+                        ? "bg-[color:rgba(47,107,255,0.12)]"
+                        : "bg-[color:rgba(234,240,255,0.01)] hover:bg-[color:rgba(234,240,255,0.04)]",
+                    ].join(" ")}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="line-clamp-1 text-sm font-bold text-slate-800">{profile.name}</span>
-                      {active && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Active</span>}
+                      <span className="line-clamp-1 text-sm font-extrabold text-[color:var(--color-text-primary)]">{profile.name}</span>
+                      {active && (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-extrabold text-emerald-300">
+                          Active
+                        </span>
+                      )}
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">{profile.userQuery}</p>
-                    <p className="mt-2 text-[11px] text-slate-400">{new Date(profile.generatedAt).toLocaleString()}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-[color:var(--color-text-secondary)]">{profile.userQuery}</p>
+                    <p className="mt-2 text-[11px] text-[color:var(--color-text-muted)]">{new Date(profile.generatedAt).toLocaleString()}</p>
                   </button>
                 );
               })}
             </div>
           </aside>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-5">
             {!selected ? (
-              <div className="flex h-full items-center justify-center rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+              <div className="flex h-full items-center justify-center rounded-2xl border border-[color:var(--color-border)] bg-[color:rgba(234,240,255,0.03)] p-8 text-center text-[color:var(--color-text-secondary)]">
                 Select or generate a profile to edit its scoring rules.
               </div>
             ) : (
               <div className="flex h-full flex-col gap-5">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)] pb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Profile editor</p>
-                    <h2 className="text-xl font-bold text-slate-900">{selected.name}</h2>
-                    <p className="text-sm text-slate-500">{selected.userQuery}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-text-muted)]">Profile editor</p>
+                    <h2 className="text-xl font-extrabold text-[color:var(--color-text-primary)]">{selected.name}</h2>
+                    <p className="text-sm text-[color:var(--color-text-secondary)]">{selected.userQuery}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => setProfileId(selected.id)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+                    <button type="button" onClick={() => setProfileId(selected.id)} className="ds-btn ds-btn-primary">
                       Use on map
                     </button>
-                    <button type="button" onClick={() => void duplicate()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                    <button type="button" onClick={() => void duplicate()} className="ds-btn ds-btn-secondary">
                       Duplicate
                     </button>
-                    <button type="button" onClick={() => void archive()} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600">
+                    <button type="button" onClick={() => void archive()} className="ds-btn ds-btn-secondary border-red-500/30 text-red-300 hover:bg-red-500/10">
                       Archive
                     </button>
                   </div>
                 </div>
 
-                <label className="flex flex-col gap-2 text-sm font-semibold text-slate-700">
+                <label className="flex flex-col gap-2 text-sm font-semibold text-[color:var(--color-text-secondary)]">
                   Display name
-                  <input
+                  <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="rounded-xl border border-slate-200 px-3 py-2 font-normal outline-none focus:border-blue-500"
+                    className="font-normal"
                   />
                 </label>
 
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-                  <p className="font-semibold">How rules work</p>
+                <div className="rounded-2xl border border-[color:rgba(47,107,255,0.25)] bg-[color:rgba(47,107,255,0.10)] p-4 text-sm text-[color:var(--color-text-primary)]">
+                  <p className="font-extrabold">How rules work</p>
                   <p className="mt-1">
                     Drivers are nearby anchors that increase demand. Competitors are similar or substitute businesses that reduce opportunity.
                     Weight controls influence: 0.1 weak, 1.0 normal, 1.5 strong.
@@ -367,7 +380,7 @@ export default function CommercialProfilesPage() {
                     type="button"
                     disabled={saving}
                     onClick={() => void save()}
-                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white disabled:bg-slate-400"
+                    className="ds-btn ds-btn-primary px-5 py-2.5 text-sm disabled:opacity-60"
                   >
                     {saving ? "Saving..." : "Save changes"}
                   </button>
@@ -376,6 +389,7 @@ export default function CommercialProfilesPage() {
             )}
           </section>
         </section>
+        </PageShell>
       </main>
     </div>
   );
