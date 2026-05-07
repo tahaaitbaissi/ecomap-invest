@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -32,7 +33,7 @@ class PoiControllerTest {
     @Test
     void getPois_validViewport_ok() throws Exception {
         var id = UUID.randomUUID();
-        when(poiService.getPoisInBoundingBox(-7.7, 33.5, -7.5, 33.6))
+        when(poiService.getPoisInBoundingBox(-7.7, 33.5, -7.5, 33.6, true))
                 .thenReturn(
                         List.of(
                                 new com.example.backend.controllers.dto.PoiMapResponse(
@@ -45,6 +46,25 @@ class PoiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", containsString("max-age=300")))
                 .andExpect(jsonPath("$[0].name").value("N"));
+    }
+
+    @Test
+    void getPois_includeScoreFalse_usesFastMapMode() throws Exception {
+        var id = UUID.randomUUID();
+        when(poiService.getPoisInBoundingBox(-7.7, 33.5, -7.5, 33.6, false))
+                .thenReturn(
+                        List.of(
+                                new com.example.backend.controllers.dto.PoiMapResponse(
+                                        id, "N", "A", "shop=x", 33.5, -7.6, null)));
+        mockMvc.perform(get("/api/v1/poi")
+                        .param("minX", "-7.7")
+                        .param("minY", "33.5")
+                        .param("maxX", "-7.5")
+                        .param("maxY", "33.6")
+                        .param("includeScore", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("N"))
+                .andExpect(jsonPath("$[0].saturationScore").value(nullValue()));
     }
 
     @Test

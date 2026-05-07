@@ -35,26 +35,17 @@ public class LLMService {
     /** OSM-style {@code key=value} (lowercase key part, flexible value). */
     private static final Pattern TAG_FORM = Pattern.compile("^[a-z0-9_]+=[^\\s]+");
 
-    private static final String SYSTEM_PROMPT =
-            """
-            You output only one JSON object, no markdown fences, no commentary.
-            The user describes a business or investment context.
-            JSON schema:
-            {"drivers":[{"tag":"osm_key=value","weight":1.0}],"competitors":[{"tag":"osm_key=value","weight":1.0}]}
-            - drivers: tag/weight for demand drivers (foot traffic, anchors) as OSM key=value.
-            - competitors: tag/weight for competing offers.
-            - Use lowercase tag keys (e.g. amenity=restaurant, shop=supermarket, office=company).
-            - weight: number from 0.1 to 1.5.
-            - Include at least one driver and at least one competitor.
-            """;
-
     private final ChatLanguageModel profileChatModel;
     private final ObjectMapper objectMapper;
+    private final ProfileTagCatalog profileTagCatalog;
 
     public LLMService(
-            @Qualifier("profileChatModel") ChatLanguageModel profileChatModel, ObjectMapper objectMapper) {
+            @Qualifier("profileChatModel") ChatLanguageModel profileChatModel,
+            ObjectMapper objectMapper,
+            ProfileTagCatalog profileTagCatalog) {
         this.profileChatModel = profileChatModel;
         this.objectMapper = objectMapper;
+        this.profileTagCatalog = profileTagCatalog;
     }
 
     @Retry(name = "profileLlm")
@@ -78,7 +69,7 @@ public class LLMService {
         }
         List<ChatMessage> messages =
                 List.of(
-                        SystemMessage.from(SYSTEM_PROMPT),
+                        SystemMessage.from(systemPrompt()),
                         UserMessage.from("Context: " + userQuery.trim()));
         Response<AiMessage> res = profileChatModel.generate(messages);
         if (res == null || res.content() == null) {
@@ -104,6 +95,34 @@ public class LLMService {
             throw new IllegalArgumentException("drivers and competitors must be non-empty arrays");
         }
         return new FallbackProfileProvider.ProfileConfig(drivers, competitors);
+    }
+
+    String systemPrompt() {
+        return """
+                You output only one JSON object, no markdown fences, no commentary.
+                The user describes a business or investment context for a location-scoring map.
+
+                Required JSON schema:
+                {"drivers":[{"tag":"supported_tag","weight":1.0}],"competitors":[{"tag":"supported_tag","weight":1.0}]}
+
+                Rules:
+                - Use ONLY tags from the supported catalog below. Do not invent new tags.
+                - drivers are demand or foot-traffic anchors that increase opportunity near a hex.
+                - competitors are same-offering or substitute businesses that reduce opportunity.
+                - If the exact business type is not supported, choose the closest supported proxy instead of inventing a tag.
+                - weight is a number from 0.1 to 1.5: 0.1 weak, 1.0 normal, 1.5 strong.
+                - Include 3 to 6 drivers and 1 to 3 competitors when possible.
+                - Prefer tags that are likely to exist in Casablanca POI data.
+
+                Supported catalog:
+                %s
+
+                Examples:
+                Cafe -> {"drivers":[{"tag":"office=company","weight":1.1},{"tag":"amenity=university","weight":0.9},{"tag":"leisure=park","weight":0.6}],"competitors":[{"tag":"amenity=cafe","weight":1.2},{"tag":"amenity=restaurant","weight":0.7}]}
+                Snack or restaurant -> {"drivers":[{"tag":"office=company","weight":1.0},{"tag":"amenity=university","weight":0.9},{"tag":"shop=supermarket","weight":0.6}],"competitors":[{"tag":"amenity=restaurant","weight":1.2},{"tag":"amenity=cafe","weight":0.6}]}
+                Pharmacy -> {"drivers":[{"tag":"amenity=hospital","weight":1.2},{"tag":"office=company","weight":0.6},{"tag":"amenity=school","weight":0.5}],"competitors":[{"tag":"amenity=pharmacy","weight":1.2},{"tag":"shop=supermarket","weight":0.5}]}
+                Lawyer or notary -> {"drivers":[{"tag":"office=company","weight":1.2},{"tag":"amenity=bank","weight":0.8},{"tag":"amenity=university","weight":0.4}],"competitors":[{"tag":"office=company","weight":0.6}]}
+                """.formatted(profileTagCatalog.promptCatalog());
     }
 
     private static String extractTopLevelJsonObject(String raw) {

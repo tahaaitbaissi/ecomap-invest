@@ -5,10 +5,9 @@ import com.example.backend.controllers.dto.ZoneStatsResponse;
 import com.example.backend.entities.Demographics;
 import com.example.backend.entities.DynamicProfile;
 import com.example.backend.entities.Poi;
-import com.example.backend.entities.User;
 import com.example.backend.repositories.DemographicsRepository;
-import com.example.backend.repositories.DynamicProfileRepository;
 import com.example.backend.repositories.PoiRepository;
+import com.example.backend.services.profile.DynamicProfileService;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,7 +17,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +28,7 @@ public class AnalyticsService {
 
     private final PoiRepository poiRepository;
     private final DemographicsRepository demographicsRepository;
-    private final DynamicProfileRepository dynamicProfileRepository;
-    private final UserService userService;
+    private final DynamicProfileService dynamicProfileService;
 
     @Transactional(readOnly = true)
     public ZoneStatsResponse getZoneStatistics(String h3Index, UUID profileId, String userEmail) {
@@ -45,12 +42,7 @@ public class AnalyticsService {
             throw new IllegalArgumentException("userEmail must be provided");
         }
 
-        User user = userService.getUserByEmail(userEmail);
-        DynamicProfile profile = dynamicProfileRepository.findById(profileId)
-                .orElseThrow(() -> new NoSuchElementException("Profile not found"));
-        if (profile.getUserId() == null || !profile.getUserId().equals(user.getId())) {
-            throw new AccessDeniedException("You do not own this profile");
-        }
+        DynamicProfile profile = dynamicProfileService.getOwnedActiveEntity(userEmail, profileId);
 
         List<TagWeight> drivers = parseTagWeights(profile.getDriversConfig());
         List<TagWeight> competitors = parseTagWeights(profile.getCompetitorsConfig());

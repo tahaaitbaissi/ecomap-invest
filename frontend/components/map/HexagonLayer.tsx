@@ -44,8 +44,7 @@ function HexScoreLabel({
   }, [map]);
 
   if (!show || score == null) return null;
-  // Fewer labels when zoomed out (performance + readability)
-  if (zoom < 12) return null;
+  if (zoom < 13) return null;
 
   const fontPx = zoom >= 15 ? 12 : zoom >= 13 ? 11 : 10;
   const scoreIcon = L.divIcon({
@@ -62,11 +61,19 @@ interface HexItemProps {
   hex: HexagonDto;
   isSelected: boolean;
   showScoreLabels: boolean;
+  /** Sticky tooltips are expensive at low zoom; disable when zoomed out. */
+  hexStickyTooltips: boolean;
   onHexClick?: (h: HexagonDto) => void;
 }
 
 const HexItem = React.memo(
-  function HexItem({ hex, isSelected, showScoreLabels, onHexClick }: HexItemProps) {
+  function HexItem({
+    hex,
+    isSelected,
+    showScoreLabels,
+    hexStickyTooltips,
+    onHexClick,
+  }: HexItemProps) {
     const color = getHexColor(hex.score);
     const opacity = getHexOpacity(hex.score);
 
@@ -96,7 +103,7 @@ const HexItem = React.memo(
           }}
           eventHandlers={{ click: () => onHexClick?.(hex) }}
         >
-          <Tooltip sticky direction="top" opacity={0.95}>
+          <Tooltip sticky={hexStickyTooltips} direction="top" opacity={0.95}>
             <span style={{ fontWeight: 600 }}>
               Score : {hex.score == null ? "—" : Math.round(hex.score)}
             </span>
@@ -113,7 +120,8 @@ const HexItem = React.memo(
     prev.hex.score === next.hex.score &&
     boundaryKey(prev.hex.boundary) === boundaryKey(next.hex.boundary) &&
     prev.isSelected === next.isSelected &&
-    prev.showScoreLabels === next.showScoreLabels,
+    prev.showScoreLabels === next.showScoreLabels &&
+    prev.hexStickyTooltips === next.hexStickyTooltips,
 );
 HexItem.displayName = "HexItem";
 
@@ -130,6 +138,19 @@ function HexagonLayer({
   showScoreLabels = true,
   onHexClick,
 }: HexagonLayerProps) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const onZoom = () => setZoom(map.getZoom());
+    map.on("zoom zoomend", onZoom);
+    return () => {
+      map.off("zoom zoomend", onZoom);
+    };
+  }, [map]);
+
+  const hexStickyTooltips = zoom >= 13;
+
   return (
     <>
       {hexagons.map((h) => (
@@ -138,6 +159,7 @@ function HexagonLayer({
           hex={h}
           isSelected={h.h3Index === selectedHexIndex}
           showScoreLabels={showScoreLabels}
+          hexStickyTooltips={hexStickyTooltips}
           onHexClick={onHexClick}
         />
       ))}

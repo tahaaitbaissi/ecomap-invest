@@ -11,4 +11,6 @@ public interface DynamicProfileRepository extends JpaRepository<DynamicProfile, 
     List<DynamicProfile> findByUserIdOrderByGeneratedAtDesc(UUID userId);
 
     Page<DynamicProfile> findByUserId(UUID userId, Pageable pageable);
+
+    Page<DynamicProfile> findByUserIdAndArchivedAtIsNull(UUID userId, Pageable pageable);
 }

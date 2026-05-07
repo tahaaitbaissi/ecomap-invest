@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,8 +20,13 @@ class DynamicProfileGenerationServiceTest {
     @Mock
     private LLMService llmService;
 
-    @InjectMocks
     private DynamicProfileGenerationService generationService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        generationService =
+                new DynamicProfileGenerationService(fallbackProfileProvider, llmService, new ProfileTagCatalog());
+    }
 
     @Test
     void usesLlmWhenPresent() {
@@ -43,10 +47,29 @@ class DynamicProfileGenerationServiceTest {
         when(fallbackProfileProvider.findBestMatch("hello"))
                 .thenReturn(
                         new FallbackProfileProvider.ProfileConfig(
-                                List.of(new TagWeightDto("shop=mall", 1.0)),
+                                List.of(new TagWeightDto("shop=convenience", 1.0)),
                                 List.of(new TagWeightDto("amenity=cafe", 1.0))));
 
         var out = generationService.generate("hello");
-        assertThat(out.drivers().get(0).tag()).isEqualTo("shop=mall");
+        assertThat(out.drivers().get(0).tag()).isEqualTo("shop=supermarket");
+    }
+
+    @Test
+    void filtersUnsupportedLlmTagsAndFallsBackWhenSectionEmpty() {
+        when(llmService.generateProfileConfig("legal")).thenReturn(Optional.of(
+                new FallbackProfileProvider.ProfileConfig(
+                        List.of(new TagWeightDto("amenity=notary", 1.0)),
+                        List.of(new TagWeightDto("unsupported=value", 1.0)))));
+        when(fallbackProfileProvider.findBestMatch(""))
+                .thenReturn(
+                        new FallbackProfileProvider.ProfileConfig(
+                                List.of(new TagWeightDto("amenity=school", 1.0)),
+                                List.of(new TagWeightDto("amenity=cafe", 1.0))));
+
+        var out = generationService.generate("legal");
+        // Drivers should keep valid canonicalized tags (amenity=notary aliases to office=company in catalog)
+        // while competitors falls back (unsupported tag was dropped).
+        assertThat(out.drivers()).extracting(TagWeightDto::tag).containsExactly("office=company");
+        assertThat(out.competitors()).extracting(TagWeightDto::tag).containsExactly("amenity=cafe");
     }
 }

@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { useStore } from "@/store/useStore";
-import ProfileInput from "@/components/profile/ProfileInput";
-import ProfileHistory from "@/components/profile/ProfileHistory";
+import ActiveProfileWidget from "@/components/profile/ActiveProfileWidget";
 
 const menuItems = [
   { id: "heatmap", label: "Heatmap & Scoring", icon: HeatmapIcon },
@@ -13,17 +12,15 @@ const menuItems = [
 ] as const;
 
 const poiItems = [
-  { id: "restaurants", label: "Restaurants", icon: "🍽️" },
-  { id: "retail", label: "Retail", icon: "🛍️" },
-  { id: "offices", label: "Offices", icon: "🏢" },
-  { id: "entertain", label: "Entertainment", icon: "🎭" },
-];
+  { id: "drivers", label: "Drivers", icon: "🟢" },
+  { id: "competitors", label: "Competitors", icon: "🔴" },
+] as const;
 
 const legend = [
-  { color: "#22c55e", label: "81-100 Excellent" },
-  { color: "#eab308", label: "61-80 Good" },
-  { color: "#f97316", label: "41-60 Fair" },
-  { color: "#ef4444", label: "0-40 Poor" },
+  { color: "#FF2222", label: "0 Saturé" },
+  { color: "#FF8800", label: "30 Modéré" },
+  { color: "#FFEE00", label: "60 Opportunité" },
+  { color: "#00CC44", label: "100 Idéal" },
 ];
 
 export type SidebarViewId = (typeof menuItems)[number]["id"];
@@ -41,6 +38,8 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
   const toggleScoreLabels = useStore((s) => s.toggleScoreLabels);
   const showPoiMarkers = useStore((s) => s.showPoiMarkers);
   const togglePoiMarkers = useStore((s) => s.togglePoiMarkers);
+  const poiBusinessFilters = useStore((s) => s.poiBusinessFilters);
+  const togglePoiBusinessFilter = useStore((s) => s.togglePoiBusinessFilter);
 
   const [internalActive, setInternalActive] = useState<SidebarViewId>("heatmap");
   const controlled = activeView != null;
@@ -54,21 +53,9 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
     }
   };
 
-  const [pois, setPois] = useState({ restaurants: true, retail: true, offices: true, entertain: false });
-  const togglePoi = (k: keyof typeof pois) => setPois((p) => ({ ...p, [k]: !p[k] }));
-
   return (
     <aside
-      style={{
-        width: "220px",
-        flexShrink: 0,
-        background: "#fff",
-        borderRight: "1px solid #e2e8f0",
-        display: "flex",
-        flexDirection: "column",
-        overflowY: "auto",
-        padding: "20px 0",
-      }}
+      className="w-[220px] shrink-0 overflow-y-auto border-r border-slate-200 bg-white py-5"
     >
       <Section title="View Mode">
         {menuItems.map((item) => {
@@ -79,29 +66,10 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
               key={item.id}
               type="button"
               onClick={() => setView(item.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                width: "100%",
-                padding: "9px 16px",
-                background: isActive ? "#1a56db" : "transparent",
-                color: isActive ? "#fff" : "#374151",
-                border: "none",
-                borderRadius: "10px",
-                fontSize: "13.5px",
-                fontWeight: isActive ? 600 : 400,
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 0.15s",
-                margin: "1px 0",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.background = "#f1f5f9";
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) e.currentTarget.style.background = "transparent";
-              }}
+              className={[
+                "mx-2 flex w-[calc(100%-16px)] items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] transition",
+                isActive ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100",
+              ].join(" ")}
             >
               <Icon active={isActive} />
               {item.label}
@@ -148,11 +116,17 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
               color: "#374151",
             }}
           >
-            <Checkbox checked={pois[poi.id as keyof typeof pois]} onChange={() => togglePoi(poi.id as keyof typeof pois)} />
+            <Checkbox
+              checked={poiBusinessFilters[poi.id as keyof typeof poiBusinessFilters]}
+              onChange={() => togglePoiBusinessFilter(poi.id as keyof typeof poiBusinessFilters)}
+            />
             <span style={{ fontSize: "14px" }}>{poi.icon}</span>
             {poi.label}
           </label>
         ))}
+        <div style={{ padding: "6px 16px 0", fontSize: "11px", color: "#94a3b8", lineHeight: 1.5 }}>
+          Filters apply when a commercial profile is active: POIs are shown if they match your profile’s driver/competitor tags.
+        </div>
       </Section>
 
       <Section title="Score Legend">
@@ -184,10 +158,7 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
       </Section>
 
       <Section title="Profil commercial" last>
-        <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <ProfileInput />
-          <ProfileHistory />
-        </div>
+        <ActiveProfileWidget />
       </Section>
     </aside>
   );
@@ -196,25 +167,13 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
 function Section({ title, children, last = false }: { title: string; children: React.ReactNode; last?: boolean }) {
   return (
     <div
-      style={{
-        marginBottom: last ? 0 : "8px",
-        paddingBottom: last ? 0 : "8px",
-        borderBottom: last ? "none" : "1px solid #f1f5f9",
-      }}
+      className={[
+        "px-0",
+        last ? "mb-0 border-b-0 pb-0" : "mb-2 border-b border-slate-100 pb-2",
+      ].join(" ")}
     >
-      <p
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          color: "#94a3b8",
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
-          padding: "8px 16px 8px",
-        }}
-      >
-        {title}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>{children}</div>
+      <p className="px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.07em] text-slate-400">{title}</p>
+      <div className="flex flex-col gap-0.5">{children}</div>
     </div>
   );
 }

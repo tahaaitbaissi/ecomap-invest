@@ -1,0 +1,46 @@
+{
+  "archetypes": [
+    {
+      "id": "lawyer",
+      "namePattern": "(?i)avocat|lawyer|legal|cabinet juridique",
+      "preferredTags": ["office=company", "amenity=courthouse", "amenity=townhall"],
+      "bonusPerHit": 4,
+      "maxBonus": 20
+    },
+    {
+      "id": "cafe",
+      "namePattern": "(?i)café|cafe|coffee|coffee.?shop",
+      "preferredTags": ["office=company", "amenity=school", "railway=subway_entrance"],
+      "bonusPerHit": 4,
+      "maxBonus": 22
+    },
+    {
+      "id": "snack",
+      "namePattern": "(?i)snack|fast.?food|traiteur|sandwich",
+      "preferredTags": ["amenity=fast_food", "office=company", "shop=mall"],
+      "bonusPerHit": 3,
+      "maxBonus": 18
+    },
+    {
+      "id": "gym",
+      "namePattern": "(?i)gym|salle de sport|fitness",
+      "preferredTags": ["leisure=sports_centre", "amenity=school", "office=company"],
+      "bonusPerHit": 3,
+      "maxBonus": 18
+    },
+    {
+      "id": "pharmacy",
+      "namePattern": "(?i)pharmac|pharmacy|officina",
+      "preferredTags": ["amenity=hospital", "amenity=clinic", "landuse=residential"],
+      "bonusPerHit": 3,
+      "maxBonus": 18
+    },
+    {
+      "id": "generic",
+      "namePattern": ".*",
+      "preferredTags": ["office=company", "shop=mall"],
+      "bonusPerHit": 2,
+      "maxBonus": 10
+    }
+  ]
+}

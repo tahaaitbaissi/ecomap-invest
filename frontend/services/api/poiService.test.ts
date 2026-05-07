@@ -20,7 +20,20 @@ describe("fetchPoisInBbox", () => {
       southWest: { lat: 0, lng: 0 },
     });
     expect(axios.get).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/v1\/poi\?minX=0&minY=0&maxX=2&maxY=1/),
+      expect.stringMatching(/\/api\/v1\/poi\?minX=0&minY=0&maxX=2&maxY=1&includeScore=false/),
+    );
+  });
+
+  it("can request saturation scores when needed", async () => {
+    await fetchPoisInBbox(
+      {
+        northEast: { lat: 1, lng: 2 },
+        southWest: { lat: 0, lng: 0 },
+      },
+      { includeScore: true },
+    );
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringMatching(/includeScore=true/),
     );
   });
 });

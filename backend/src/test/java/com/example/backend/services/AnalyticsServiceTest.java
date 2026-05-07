@@ -10,10 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.example.backend.entities.Demographics;
 import com.example.backend.entities.DynamicProfile;
-import com.example.backend.entities.User;
 import com.example.backend.repositories.DemographicsRepository;
-import com.example.backend.repositories.DynamicProfileRepository;
 import com.example.backend.repositories.PoiRepository;
+import com.example.backend.services.profile.DynamicProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
@@ -34,27 +33,15 @@ class AnalyticsServiceTest {
     @Mock
     private DemographicsRepository demographicsRepository;
     @Mock
-    private DynamicProfileRepository dynamicProfileRepository;
-    @Mock
-    private UserService userService;
+    private DynamicProfileService dynamicProfileService;
 
     @Test
     void rejectsWhenProfileNotOwned() {
-        AnalyticsService svc = new AnalyticsService(
-                poiRepository, demographicsRepository, dynamicProfileRepository, userService);
-
-        User u = new User();
-        u.setId(UUID.randomUUID());
-        when(userService.getUserByEmail("a@a.com")).thenReturn(u);
+        AnalyticsService svc = new AnalyticsService(poiRepository, demographicsRepository, dynamicProfileService);
 
         UUID pid = UUID.randomUUID();
-        DynamicProfile p = new DynamicProfile();
-        p.setId(pid);
-        p.setUserId(UUID.randomUUID());
-        p.setGeneratedAt(Instant.now());
-        p.setDriversConfig(new ObjectMapper().valueToTree(List.of()));
-        p.setCompetitorsConfig(new ObjectMapper().valueToTree(List.of()));
-        when(dynamicProfileRepository.findById(pid)).thenReturn(Optional.of(p));
+        when(dynamicProfileService.getOwnedActiveEntity("a@a.com", pid))
+                .thenThrow(new AccessDeniedException("You do not own this profile"));
 
         assertThrows(
                 AccessDeniedException.class,
@@ -63,25 +50,19 @@ class AnalyticsServiceTest {
 
     @Test
     void computesEstimatedFootTraffic_andCounts() throws Exception {
-        AnalyticsService svc = new AnalyticsService(
-                poiRepository, demographicsRepository, dynamicProfileRepository, userService);
-
-        User u = new User();
-        UUID uid = UUID.randomUUID();
-        u.setId(uid);
-        when(userService.getUserByEmail("a@a.com")).thenReturn(u);
+        AnalyticsService svc = new AnalyticsService(poiRepository, demographicsRepository, dynamicProfileService);
 
         UUID pid = UUID.randomUUID();
         DynamicProfile p = new DynamicProfile();
         p.setId(pid);
-        p.setUserId(uid);
+        p.setUserId(UUID.randomUUID());
         p.setGeneratedAt(Instant.now());
         ObjectMapper om = new ObjectMapper();
         JsonNode drivers = om.readTree("[{\"tag\":\"amenity=school\",\"weight\":1.0}]");
         JsonNode competitors = om.readTree("[{\"tag\":\"amenity=cafe\",\"weight\":1.0}]");
         p.setDriversConfig(drivers);
         p.setCompetitorsConfig(competitors);
-        when(dynamicProfileRepository.findById(pid)).thenReturn(Optional.of(p));
+        when(dynamicProfileService.getOwnedActiveEntity("a@a.com", pid)).thenReturn(p);
 
         when(poiRepository.countByTypeTagWithinHex(eq("amenity=school"), any())).thenReturn(3L);
         when(poiRepository.countByTypeTagWithinHex(eq("amenity=cafe"), any())).thenReturn(2L);

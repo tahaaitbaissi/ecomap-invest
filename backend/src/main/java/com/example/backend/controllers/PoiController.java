@@ -39,10 +39,11 @@ public class PoiController {
             @RequestParam("minX") double minX,
             @RequestParam("minY") double minY,
             @RequestParam("maxX") double maxX,
-            @RequestParam("maxY") double maxY) {
+            @RequestParam("maxY") double maxY,
+            @RequestParam(value = "includeScore", defaultValue = "true") boolean includeScore) {
         try {
             ViewportBbox.validatePoiView(minX, minY, maxX, maxY, maxBboxDeg);
-            List<PoiMapResponse> pois = poiService.getPoisInBoundingBox(minX, minY, maxX, maxY);
+            List<PoiMapResponse> pois = poiService.getPoisInBoundingBox(minX, minY, maxX, maxY, includeScore);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES))
                     .body(pois);

@@ -7,9 +7,12 @@ COPY rmi-scoring-api/pom.xml rmi-scoring-api/
 COPY rmi-scoring-server/pom.xml rmi-scoring-server/
 # Parent pom lists backend as a module; Maven requires the directory to exist even when building only RMI.
 COPY backend/pom.xml backend/
+# Parent pom also lists ai-orchestrator; directory must exist for Maven reactor.
+COPY ai-orchestrator/pom.xml ai-orchestrator/
 
 COPY rmi-scoring-api/src rmi-scoring-api/src
 COPY rmi-scoring-server/src rmi-scoring-server/src
+COPY ai-orchestrator/src ai-orchestrator/src
 
 # Retries: Docker bridge DNS often returns EAI_AGAIN for repo.maven.apache.org ("Unknown host ... Try again").
 # Optional: docker compose -f docker-compose.yml -f docker-compose.build-host-network.yml up -d --build

@@ -27,6 +27,9 @@ public class DynamicProfile {
     @Column(name = "user_query", nullable = false, columnDefinition = "TEXT")
     private String userQuery;
 
+    @Column(name = "name", nullable = false, length = 120)
+    private String name;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "drivers_config", nullable = false, columnDefinition = "jsonb")
     private JsonNode driversConfig;
@@ -37,4 +40,10 @@ public class DynamicProfile {
 
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
 }

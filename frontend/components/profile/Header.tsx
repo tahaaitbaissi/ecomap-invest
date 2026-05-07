@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProfilePanel from "@/components/profile/ProfilePanel";
+import MapSearchBar from "@/components/map/MapSearchBar";
 import { clearToken, getToken } from "@/lib/auth";
 import { getMyProfile } from "@/lib/api";
 
@@ -38,108 +39,56 @@ export default function Header() {
   return (
     <>
       <header
-        style={{ height: "72px", padding: "0 48px", backgroundColor: "#1a56db" }}
-        className="sticky top-0 z-30 flex w-full shrink-0 items-center justify-between"
+        className="sticky top-0 z-[var(--app-shell-z-header)] flex h-[var(--app-header-h)] w-full shrink-0 items-center border-b border-white/10 bg-[var(--brand-blue)]/95 px-4 backdrop-blur-md md:px-8"
       >
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="flex shrink-0 items-center"
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
-          type="button"
-        >
-          <Image
-            src="/logoNoBg.svg"
-            alt="EcoMap Invest"
-            width={220}
-            height={64}
-            style={{ height: "62px", width: "auto", objectFit: "contain" }}
-            priority
-            unoptimized
-          />
-        </button>
-
-        <div className="flex items-center" style={{ gap: "16px" }}>
-          <div
-            className="flex items-center"
-            style={{
-              gap: "10px",
-              backgroundColor: "#166534",
-              color: "#fff",
-              fontSize: "15px",
-              fontWeight: 600,
-              padding: "9px 20px",
-              borderRadius: "999px",
-              userSelect: "none",
-              whiteSpace: "nowrap",
-            }}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="flex shrink-0 items-center rounded-lg p-1 transition hover:bg-white/10"
+            type="button"
+            aria-label="Go to dashboard"
           >
-            <span
-              style={{
-                width: "10px",
-                height: "10px",
-                borderRadius: "50%",
-                backgroundColor: "#4ade80",
-                flexShrink: 0,
-                display: "inline-block",
-              }}
+            <Image
+              src="/logoNoBg.svg"
+              alt="EcoMap Invest"
+              width={200}
+              height={56}
+              className="h-12 w-auto"
+              priority
+              unoptimized
             />
+          </button>
+
+          <div className="hidden min-w-0 flex-1 justify-center md:flex">
+            <div className="w-full max-w-[680px]">
+              <MapSearchBar />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
+          <div className="hidden items-center gap-2 rounded-full bg-emerald-700/90 px-3 py-1.5 text-sm font-semibold text-white md:flex">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
             Connected
           </div>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center transition-opacity hover:opacity-80"
-            style={{
-              gap: "8px",
-              color: "#fff",
-              fontSize: "15px",
-              fontWeight: 500,
-              padding: "9px 20px",
-              borderRadius: "999px",
-              border: "1.5px solid rgba(255,255,255,0.4)",
-              background: "transparent",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
+            className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/0 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10"
           >
             <LogoutIcon />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
           </button>
 
           <button
             type="button"
             onClick={() => setProfileOpen(true)}
             aria-label="Open profile panel"
-            className="flex items-center justify-center transition-transform hover:scale-105"
-            style={{
-              position: "relative",
-              width: "44px",
-              height: "44px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #38bdf8, #6366f1)",
-              border: "2.5px solid rgba(255,255,255,0.7)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "14px",
-              cursor: "pointer",
-              flexShrink: 0,
-              outline: "none",
-            }}
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/70 bg-gradient-to-br from-sky-400 to-indigo-500 text-sm font-bold text-white shadow-sm transition-transform hover:scale-[1.03]"
           >
             {initials || "?"}
-            <span
-              style={{
-                position: "absolute",
-                top: "-1px",
-                right: "-1px",
-                width: "13px",
-                height: "13px",
-                backgroundColor: "#4ade80",
-                borderRadius: "50%",
-                border: "2.5px solid #1a56db",
-              }}
-            />
+            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--brand-blue)] bg-emerald-400" />
           </button>
         </div>
       </header>

@@ -1,11 +1,16 @@
 package com.example.backend.controllers;
 
+import com.example.backend.controllers.dto.OpportunitySimulateRequest;
+import com.example.backend.controllers.dto.OpportunitySimulateResponse;
 import com.example.backend.controllers.dto.SimulateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.controllers.dto.SimulateResponse;
 import com.example.backend.services.SimulationService;
+import com.example.backend.services.opportunity.OpportunityScoreService;
+import com.example.backend.scoring.HexagonRawScoringSupport;
+import com.example.backend.services.profile.DynamicProfileService;
 import jakarta.validation.Valid;
 import java.util.NoSuchElementException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class SimulationController {
 
     private final SimulationService simulationService;
+    private final OpportunityScoreService opportunityScoreService;
+    private final HexagonRawScoringSupport hexagonRawScoringSupport;
+    private final DynamicProfileService dynamicProfileService;
 
     @Operation(summary = "Apply a hypothetical driver/competitor impact")
     @PostMapping
@@ -41,7 +49,28 @@ public class SimulationController {
                             request.tag().trim(),
                             request.profileId(),
                             request.sessionId().trim(),
+                            request.bbox().trim(),
                             authentication.getName());
+            return ResponseEntity.ok(out);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (AccessDeniedException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Business-specific opportunity at a location for the selected profile")
+    @PostMapping("/opportunity")
+    public ResponseEntity<?> opportunity(
+            Authentication authentication, @Valid @RequestBody OpportunitySimulateRequest request) {
+        try {
+            var profile = dynamicProfileService.getOwnedActiveEntity(authentication.getName(), request.profileId());
+            var cfg = hexagonRawScoringSupport.buildConfigForProfile(request.profileId());
+            OpportunitySimulateResponse out =
+                    opportunityScoreService.compute(
+                            profile, request.lat(), request.lng(), cfg, request.explain());
             return ResponseEntity.ok(out);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());

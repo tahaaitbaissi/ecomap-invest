@@ -2,15 +2,16 @@
 
 import { useCallback, useState } from "react";
 import DynamicMap from "@/components/map/DynamicMap";
-import type { BoundingBox, PoiDto } from "@/services/api/poiService";
+import type { MapViewport } from "@/components/map/MapViewer";
+import type { PoiDto } from "@/services/api/poiService";
 import { fetchPoisInBbox } from "@/services/api/poiService";
 
 export default function MapPage() {
   const [pois, setPois] = useState<PoiDto[]>([]);
 
-  const handleBoundsChange = useCallback(async (bbox: BoundingBox) => {
+  const handleBoundsChange = useCallback(async (viewport: MapViewport) => {
     try {
-      const data = await fetchPoisInBbox(bbox);
+      const data = await fetchPoisInBbox(viewport.bbox);
       setPois(data);
     } catch (err) {
       console.debug("[MapPage] POI fetch skipped (backend not ready):", err);

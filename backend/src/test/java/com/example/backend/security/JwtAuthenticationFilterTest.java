@@ -127,4 +127,9 @@ class JwtAuthenticationFilterTest {
         verify(loginService, never()).loadUserByUsername(any());
         verify(filterChain).doFilter(req, res);
     }
+
+    @Test
+    void jwtRunsOnAsyncDispatch_soSseContinuationStaysAuthenticated() {
+        org.junit.jupiter.api.Assertions.assertFalse(filter.shouldNotFilterAsyncDispatch());
+    }
 }

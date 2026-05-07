@@ -25,7 +25,7 @@ class LLMServiceTest {
 
     @BeforeEach
     void setUp() {
-        llmService = new LLMService(chatLanguageModel, new ObjectMapper());
+        llmService = new LLMService(chatLanguageModel, new ObjectMapper(), new ProfileTagCatalog());
     }
 
     @Test
@@ -61,5 +61,16 @@ class LLMServiceTest {
         when(chatLanguageModel.generate(anyList())).thenReturn(Response.from(AiMessage.from(body)));
 
         assertThatThrownBy(() -> llmService.generateProfileConfig("x")).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void systemPrompt_includesSupportedCatalogAndProxyRules() {
+        String prompt = llmService.systemPrompt();
+        assertThat(prompt).contains("Use ONLY tags from the supported catalog");
+        assertThat(prompt).contains("amenity=cafe");
+        assertThat(prompt).contains("office=company");
+        assertThat(prompt).contains("amenity=pharmacy");
+        assertThat(prompt).contains("Pharmacy ->");
+        assertThat(prompt).contains("choose the closest supported proxy");
     }
 }

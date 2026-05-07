@@ -62,8 +62,25 @@ public class PoiService {
 
     @Transactional(readOnly = true)
     public List<PoiMapResponse> getPoisInBoundingBox(double swLng, double swLat, double neLng, double neLat) {
+        return getPoisInBoundingBox(swLng, swLat, neLng, neLat, true);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PoiMapResponse> getPoisInBoundingBox(
+            double swLng, double swLat, double neLng, double neLat, boolean includeScore) {
+        long startedAt = System.nanoTime();
         ViewportBbox.validatePoiView(swLng, swLat, neLng, neLat, maxBboxDeg);
         List<Poi> pois = poiRepository.findAllInBoundingBox(swLng, swLat, neLng, neLat);
+        long queryMs = elapsedMs(startedAt);
+
+        if (!includeScore) {
+            List<PoiMapResponse> out = pois.stream()
+                .map(poi -> toResponse(poi, null))
+                .toList();
+            log.info("POI viewport loaded {} rows without scores in {}ms (query={}ms)",
+                out.size(), elapsedMs(startedAt), queryMs);
+            return out;
+        }
 
         // Compute saturation scores concurrently for all POIs
         List<CompletableFuture<PoiMapResponse>> futures = pois.stream()
@@ -71,9 +88,12 @@ public class PoiService {
             .toList();
 
         // Wait for all async scoring operations
-        return futures.stream()
+        List<PoiMapResponse> out = futures.stream()
             .map(CompletableFuture::join)
             .toList();
+        log.info("POI viewport loaded {} rows with scores in {}ms (query={}ms)",
+            out.size(), elapsedMs(startedAt), queryMs);
+        return out;
     }
 
     /**
@@ -213,6 +233,10 @@ public class PoiService {
             poi.getLocation().getX(),
             saturationScore
         );
+    }
+
+    private static long elapsedMs(long startedAtNanos) {
+        return (System.nanoTime() - startedAtNanos) / 1_000_000;
     }
 
 }

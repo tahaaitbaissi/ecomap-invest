@@ -79,7 +79,7 @@ public class FallbackProfileProvider {
                             new TagWeightDto("amenity=school", 0.7),
                             new TagWeightDto("office=company", 1.0),
                             new TagWeightDto("amenity=university", 0.9),
-                            new TagWeightDto("public_transport=station", 0.8),
+                            new TagWeightDto("shop=supermarket", 0.6),
                             new TagWeightDto("leisure=park", 0.6)),
                     List.of(
                             new TagWeightDto("amenity=cafe", 1.2),
@@ -92,7 +92,7 @@ public class FallbackProfileProvider {
                             new TagWeightDto("leisure=park", 0.5)),
                     List.of(
                             new TagWeightDto("amenity=restaurant", 1.2),
-                            new TagWeightDto("amenity=fast_food", 0.9)));
+                            new TagWeightDto("amenity=cafe", 0.6)));
             case "boulangerie" -> new ProfileConfig(
                     List.of(
                             new TagWeightDto("shop=supermarket", 0.8),
@@ -101,15 +101,16 @@ public class FallbackProfileProvider {
                             new TagWeightDto("amenity=bank", 0.4)),
                     List.of(
                             new TagWeightDto("shop=bakery", 1.2),
-                            new TagWeightDto("shop=convenience", 0.7)));
+                            new TagWeightDto("shop=supermarket", 0.5)));
             case "pharmacie" -> new ProfileConfig(
                     List.of(
                             new TagWeightDto("amenity=hospital", 1.2),
-                            new TagWeightDto("amenity=clinic", 1.0),
-                            new TagWeightDto("amenity=doctors", 1.0),
-                            new TagWeightDto("amenity=school", 0.4)),
+                            new TagWeightDto("amenity=bank", 0.5),
+                            new TagWeightDto("office=company", 0.6),
+                            new TagWeightDto("amenity=school", 0.5)),
                     List.of(
-                            new TagWeightDto("amenity=pharmacy", 1.2)));
+                            new TagWeightDto("amenity=pharmacy", 1.2),
+                            new TagWeightDto("shop=supermarket", 0.5)));
             case "gym" -> new ProfileConfig(
                     List.of(
                             new TagWeightDto("office=company", 0.9),
@@ -117,17 +118,17 @@ public class FallbackProfileProvider {
                             new TagWeightDto("leisure=park", 0.6),
                             new TagWeightDto("shop=supermarket", 0.4)),
                     List.of(
-                            new TagWeightDto("leisure=fitness_centre", 1.2),
-                            new TagWeightDto("leisure=gym", 1.0)));
+                            new TagWeightDto("leisure=gym", 1.2),
+                            new TagWeightDto("leisure=park", 0.4)));
             case "supermarche" -> new ProfileConfig(
                     List.of(
                             new TagWeightDto("amenity=school", 0.6),
                             new TagWeightDto("office=company", 0.9),
                             new TagWeightDto("amenity=bank", 0.6),
-                            new TagWeightDto("public_transport=station", 0.7)),
+                            new TagWeightDto("amenity=university", 0.5)),
                     List.of(
                             new TagWeightDto("shop=supermarket", 1.2),
-                            new TagWeightDto("shop=convenience", 0.8)));
+                            new TagWeightDto("shop=bakery", 0.4)));
             default -> DEFAULT_PROFILE;
         };
     }

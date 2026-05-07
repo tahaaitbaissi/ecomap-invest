@@ -11,8 +11,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Runs {@link H3GridService#generateAndPersistCasablancaIfEmpty()} at startup when seeding is
- * enabled.
+ * Runs {@link H3GridService#generateAndPersistCasablancaIfEmpty()} when seeding is enabled; inserts
+ * any missing cells for the current study-area rectangle even if {@code h3_hexagon} is not empty.
  */
 @Slf4j
 @Component

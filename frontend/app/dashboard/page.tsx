@@ -25,7 +25,7 @@ export default function DashboardPage() {
   }, [sidebarView, setActiveView]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex h-[100dvh] flex-col bg-slate-50">
       <Header />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Sidebar activeView={sidebarView} onActiveViewChange={setSidebarView} />

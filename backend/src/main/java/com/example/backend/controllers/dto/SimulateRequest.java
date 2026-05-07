@@ -14,4 +14,5 @@ public record SimulateRequest(
         @NotNull SimulationImpactType type,
         @NotBlank String tag,
         @NotNull UUID profileId,
-        @NotBlank String sessionId) {}
+        @NotBlank String sessionId,
+        @NotBlank String bbox) {}

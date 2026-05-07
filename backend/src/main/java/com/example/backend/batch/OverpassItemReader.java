@@ -20,7 +20,7 @@ public class OverpassItemReader implements ItemReader<OsmElement> {
 
     private static final List<String> OSM_CATEGORIES = List.of(
         "amenity=cafe", "amenity=restaurant", "amenity=school",
-        "amenity=university", "amenity=hospital", "amenity=bank",
+        "amenity=university", "amenity=hospital", "amenity=pharmacy", "amenity=bank",
         "shop=supermarket", "shop=bakery", "shop=clothes",
         "leisure=park", "leisure=gym", "office=company"
     );

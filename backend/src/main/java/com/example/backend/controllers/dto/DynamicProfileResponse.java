@@ -9,8 +9,11 @@ import java.util.UUID;
 public record DynamicProfileResponse(
         UUID id,
         UUID userId,
+        String name,
         String userQuery,
         Instant generatedAt,
+        Instant updatedAt,
+        Instant archivedAt,
         List<TagWeightDto> drivers,
         List<TagWeightDto> competitors
 ) {}

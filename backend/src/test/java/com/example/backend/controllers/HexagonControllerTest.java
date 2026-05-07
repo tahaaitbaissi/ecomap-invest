@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.backend.controllers.dto.HexagonMapResponse;
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.services.HexagonScoringService;
+import com.example.backend.services.profile.DynamicProfileService;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -37,11 +38,13 @@ class HexagonControllerTest {
     @MockitoBean
     private HexagonScoringService hexagonScoringService;
     @MockitoBean
+    private DynamicProfileService dynamicProfileService;
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void getHexagons_grayMode_ok() throws Exception {
-        when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull()))
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), isNull()))
                 .thenReturn(
                         List.of(
                                 new HexagonMapResponse(
@@ -57,12 +60,12 @@ class HexagonControllerTest {
                 .andExpect(jsonPath("$[0].h3Index").value("891ea6c0d47ffff"))
                 .andExpect(jsonPath("$[0].score").value(nullValue()));
 
-        verify(hexagonScoringService).getHexagonsInBbox("-7.6,33.5,-7.5,33.6", null);
+        verify(hexagonScoringService).getHexagonsInBbox("-7.6,33.5,-7.5,33.6", null, null);
     }
 
     @Test
     void getHexagons_badBbox_400() throws Exception {
-        when(hexagonScoringService.getHexagonsInBbox("bad", null))
+        when(hexagonScoringService.getHexagonsInBbox("bad", null, null))
                 .thenThrow(new IllegalArgumentException("bbox is required"));
 
         mockMvc.perform(get("/api/v1/hexagons").param("bbox", "bad"))
@@ -74,7 +77,7 @@ class HexagonControllerTest {
     @WithMockUser
     void getHexagons_profileNotFound_404() throws Exception {
         UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        when(hexagonScoringService.getHexagonsInBbox(any(String.class), eq(id)))
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), eq(id), isNull()))
                 .thenThrow(new NoSuchElementException("Unknown profile: " + id));
 
         mockMvc.perform(
@@ -92,6 +95,38 @@ class HexagonControllerTest {
                                 .param("bbox", "-7.6,33.5,-7.5,33.6")
                                 .param("profileId", id.toString()))
                 .andExpect(status().isUnauthorized());
-        verify(hexagonScoringService, never()).getHexagonsInBbox(any(), any());
+        verify(hexagonScoringService, never()).getHexagonsInBbox(any(), any(), any());
+    }
+
+    @Test
+    void getHexagons_h3ResolutionOutOfRange_badRequest() throws Exception {
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), eq(6)))
+                .thenThrow(new IllegalArgumentException("h3Resolution must be between 7 and 9 inclusive"));
+
+        mockMvc.perform(get("/api/v1/hexagons")
+                        .param("bbox", "-7.6,33.5,-7.5,33.6")
+                        .param("h3Resolution", "6"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getHexagons_h3Resolution7_ok() throws Exception {
+        when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), eq(7)))
+                .thenReturn(
+                        List.of(
+                                new HexagonMapResponse(
+                                        "8729a10ffffff",
+                                        40.0,
+                                        List.of(
+                                                new HexagonMapResponse.LatLng(33.0, -7.5),
+                                                new HexagonMapResponse.LatLng(33.01, -7.5)))));
+
+        mockMvc.perform(get("/api/v1/hexagons")
+                        .param("bbox", "-7.6,33.5,-7.5,33.6")
+                        .param("h3Resolution", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].h3Index").value("8729a10ffffff"));
+
+        verify(hexagonScoringService).getHexagonsInBbox("-7.6,33.5,-7.5,33.6", null, 7);
     }
 }

@@ -25,6 +25,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.loginService = loginService;
     }
 
+    /**
+     * {@link org.springframework.web.filter.GenericFilterBean} skips async dispatches by default.
+     * With {@code SseEmitter} Tomcat completes the request via an async dispatch; without JWT here
+     * the security context is anonymous and {@code authorizeHttpRequests(authenticated)} denies.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,

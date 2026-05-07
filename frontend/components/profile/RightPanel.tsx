@@ -2,31 +2,36 @@
 
 import { useEffect, useState, useMemo } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer,
+  Tooltip as RTooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from "recharts";
 import { useStore } from "@/store/useStore";
-import { getHexColor } from "@/lib/hexagonUtils";
-import { useSSEExplanation } from "@/hooks/useSSEExplanation";
-import TypewriterText from "@/components/profile/TypewriterText";
+import AiChatPanel from "@/components/ai/AiChatPanel";
+import {
+  fetchHexDetails,
+  type HexExplanationContextDto,
+  type HexTagContributionRow,
+} from "@/services/api/profileService";
+import { computeViewportScoreStats } from "@/lib/analyticsViewportStats";
+import { fetchZoneStats, type ZoneStatsResponse } from "@/services/api/analyticsService";
 
 export default function RightPanel() {
   const activeView = useStore((s) => s.activeView);
   return (
-    <aside style={{ width: "280px", flexShrink: 0, background: "#fff", borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-      <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid #f1f5f9" }}>
-        <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#1e293b", margin: 0 }}>
+    <aside className="w-[280px] shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
+      <div className="border-b border-slate-100 px-4 pb-3 pt-5">
+        <h2 className="m-0 text-base font-bold text-slate-800">
           {activeView === "heatmap" ? "Hex Details"
             : activeView === "whatif" ? "What-if Simulation"
             : activeView === "analytics" ? "Analytics Dashboard"
             : "AI Assistant"}
         </h2>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", paddingTop: "16px" }}>
+      <div className="flex-1 overflow-y-auto pt-4">
         {activeView === "heatmap" && <HexDetailsPanel />}
         {activeView === "whatif" && <WhatIfPanel />}
         {activeView === "analytics" && <AnalyticsPanel />}
-        {activeView === "ai" && <AIPanel />}
+        {activeView === "ai" && <AiChatPanel />}
       </div>
     </aside>
   );
@@ -34,19 +39,48 @@ export default function RightPanel() {
 
 /* ---- Hex Details ---- */
 function HexDetailsPanel() {
-  const { selectedHexIndex, hexagonRecord, profileId } = useStore();
+  const { selectedHexIndex, hexagonRecord, profileId, selectedCommercialProfile } = useStore();
   const hex = selectedHexIndex ? hexagonRecord[selectedHexIndex] : null;
-  const { text, isStreaming, isComplete, error, start, stop } = useSSEExplanation(
-    selectedHexIndex,
-    profileId,
-    hex?.score ?? 50
-  );
+  const viewportCellCount = Object.keys(hexagonRecord).length;
 
-  // Auto-start analysis whenever a new hexagon is selected
+  const [ctx, setCtx] = useState<HexExplanationContextDto | null>(null);
+  const [ctxLoading, setCtxLoading] = useState(false);
+  const [ctxError, setCtxError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (selectedHexIndex) start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedHexIndex]);
+    if (!selectedHexIndex || !profileId) {
+      setCtx(null);
+      setCtxError(null);
+      return;
+    }
+    let cancelled = false;
+    setCtxLoading(true);
+    setCtxError(null);
+    void fetchHexDetails(profileId, selectedHexIndex, viewportCellCount || undefined)
+      .then((c) => {
+        if (!cancelled) setCtx(c);
+      })
+      .catch((e: unknown) => {
+        const msg =
+          e && typeof e === "object" && "response" in e
+            ? (e as { response?: { status?: number; data?: string | { message?: string } } }).response
+                ?.data
+            : undefined;
+        const str =
+          typeof msg === "string"
+            ? msg
+            : msg && typeof msg === "object" && "message" in msg
+              ? String((msg as { message?: string }).message)
+              : "Impossible de charger le détail du score.";
+        if (!cancelled) setCtxError(str);
+      })
+      .finally(() => {
+        if (!cancelled) setCtxLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedHexIndex, profileId, viewportCellCount]);
 
   if (!hex) {
     return (
@@ -68,106 +102,153 @@ function HexDetailsPanel() {
             : "Poor";
   const hexNum = parseInt(hex.h3Index.slice(-3), 16) % 100;
 
-  // Deterministic mock POIs derived from h3Index
-  const seed = parseInt(hex.h3Index.slice(-4), 16);
-  const poiNames = ["Le Marrakchi", "Café Atlas", "Boutique Moda", "Épicerie Centrale", "Pharmacie du Parc", "Boulangerie Paul", "Sushi House", "Pizza Roma", "Hammam Luxe", "Librairie Ibn Rushd"];
-  const poiTypes = ["🍽️ Restaurant", "☕ Café", "🛍️ Retail", "🏪 Épicerie", "💊 Pharmacie", "🥐 Boulangerie", "🍱 Sushi", "🍕 Pizzeria", "💆 Spa", "📚 Librairie"];
-  const topPois = Array.from({ length: 3 }, (_, i) => ({
-    name: poiNames[(seed + i * 3) % poiNames.length],
-    type: poiTypes[(seed + i) % poiTypes.length],
-    rating: (3.5 + ((seed + i * 7) % 15) / 10).toFixed(1),
-    distance: `${100 + ((seed + i * 41) % 400)}m`,
-  }));
+  const driverRows = ctx?.drivers
+    ? [...ctx.drivers].sort(
+        (a, b) => b.weightedContributionAcrossLeaves - a.weightedContributionAcrossLeaves,
+      )
+    : [];
+  const compRows = ctx?.competitors
+    ? [...ctx.competitors].sort(
+        (a, b) => b.weightedContributionAcrossLeaves - a.weightedContributionAcrossLeaves,
+      )
+    : [];
+
+  const formatTagLine = (tag: HexTagContributionRow) =>
+    `${tag.tag} · poi ${tag.countInsideAcrossLeaves} × ${tag.weight.toFixed(2)} → ${tag.weightedContributionAcrossLeaves.toFixed(2)}`;
+
+  const explainBlocked = !profileId;
 
   return (
     <>
-    <style>{`
+      <style>{`
       @keyframes slideInRight { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
     `}</style>
-    <div style={{ padding: "0 16px 20px", animation: "slideInRight 0.28s ease-out" }}>
-      <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a56db 0%, #2563eb 100%)", padding: "18px 16px", marginBottom: "16px", color: "#fff" }}>
-        <div style={{ fontSize: "11px", fontWeight: 600, opacity: 0.8, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Investment Score</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "12px" }}>
-          <span style={{ fontSize: "44px", fontWeight: 800, lineHeight: 1 }}>
-            {scoreVal == null ? "—" : Math.round(scoreVal)}
-          </span>
-          <span style={{ fontSize: "18px", opacity: 0.6 }}>/100</span>
-        </div>
-        <div style={{ display: "flex", gap: "6px" }}>
-          <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 600 }}>{label}</span>
-          <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>Hex #{hexNum}</span>
-        </div>
-      </div>
-      <div style={{ marginBottom: "14px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <InfoIcon />
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>About Score</span>
-        </div>
-        <p style={{ fontSize: "11px", color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
-          Investment score combines demographics, competition, foot traffic, and market trends to rate location potential.
-        </p>
-      </div>
-      <div style={{ marginBottom: "14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-          <TrendUpIcon color="#374151" />
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Positive Drivers</span>
-        </div>
-        {["High foot traffic", "Low competition", "Premium demographics", "Strong demand"].map((d) => (
-          <div key={d} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
-            <span style={{ color: "#22c55e", fontSize: "13px", fontWeight: 700 }}>✓</span>
-            <span style={{ fontSize: "12px", color: "#374151" }}>{d}</span>
+      <div style={{ padding: "0 16px 20px", animation: "slideInRight 0.28s ease-out" }}>
+        <div style={{ borderRadius: "14px", background: "linear-gradient(135deg, #1a56db 0%, #2563eb 100%)", padding: "18px 16px", marginBottom: "16px", color: "#fff" }}>
+          <div style={{ fontSize: "11px", fontWeight: 600, opacity: 0.8, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Investment Score</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "12px" }}>
+            <span style={{ fontSize: "44px", fontWeight: 800, lineHeight: 1 }}>
+              {scoreVal == null ? "—" : Math.round(scoreVal)}
+            </span>
+            <span style={{ fontSize: "18px", opacity: 0.6 }}>/100</span>
           </div>
-        ))}
-      </div>
-      <div style={{ marginBottom: "10px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-          <CompetIcon />
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Competition</span>
-        </div>
-        <span style={{ fontSize: "13px", color: "#374151" }}>2 competitors within 1km</span>
-      </div>
-      <div style={{ marginBottom: "20px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <DemoIcon />
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Demographics</span>
-        </div>
-        <div style={{ fontSize: "24px", fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>4 222</div>
-        <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>residents/km²</div>
-      </div>
-      {/* Top POIs */}
-      <div style={{ marginBottom: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-          <span style={{ fontSize: "13px" }}>📍</span>
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Top POIs à proximité</span>
-        </div>
-        {topPois.map((poi, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", background: "#f8fafc", borderRadius: "8px", marginBottom: "6px" }}>
-            <span style={{ fontSize: "18px", flexShrink: 0 }}>{poi.type.split(" ")[0]}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "12px", fontWeight: 600, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{poi.name}</div>
-              <div style={{ fontSize: "10px", color: "#94a3b8" }}>{poi.type.split(" ").slice(1).join(" ")} · {poi.distance}</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "3px", flexShrink: 0 }}>
-              <span style={{ fontSize: "11px", color: "#f59e0b" }}>⭐</span>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#374151" }}>{poi.rating}</span>
-            </div>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px", fontWeight: 600 }}>{label}</span>
+            <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>Hex #{hexNum}</span>
+            {ctx?.aggregatedFromGridLeaves ? (
+              <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: "20px", padding: "3px 10px", fontSize: "11px" }}>Σ {ctx.gridLeafCount} mailles rés. {ctx.gridLeafResolution}</span>
+            ) : null}
           </div>
-        ))}
+        </div>
+        <div style={{ marginBottom: "14px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+            <InfoIcon />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>À propos du score</span>
+          </div>
+          <p style={{ fontSize: "11px", color: "#6b7280", lineHeight: 1.6, margin: 0 }}>
+            {explainBlocked
+              ? "Sélectionnez un profil commercial pour scorer et expliquer cette cellule."
+              : ctxLoading
+                ? "Chargement des faits métier…"
+                : ctxError ?? `Profil « ${selectedCommercialProfile?.name ?? ctx?.profileName ?? "—"} » — score affiché 0–100 après normalisation globale (voir « XAI » ci-dessous).`}
+          </p>
+          {ctx && !ctxLoading && (
+            <p style={{ fontSize: "10px", color: "#94a3b8", margin: "10px 0 0", lineHeight: 1.5 }}>
+              Brut moyen (terrain){" "}
+              <strong>{ctx.averageRawAcrossLeaves.toFixed(4)}</strong> ; plage stretch{" "}
+              <strong>
+                [{ctx.normalizationStretchLow.toFixed(3)}, {ctx.normalizationStretchHigh.toFixed(3)}]
+              </strong>
+              {ctx.normalizationFlat ? " (distribution plate)." : "."}
+            </p>
+          )}
+        </div>
+        <div style={{ marginBottom: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+            <TrendUpIcon color="#374151" />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>
+              Conducteurs POI{" "}
+              {ctx?.aggregatedFromGridLeaves ? "(somme Σ sur sous-mailles)" : ""}
+            </span>
+          </div>
+          {ctxLoading ? (
+            <span style={{ fontSize: "12px", color: "#94a3b8" }}>…</span>
+          ) : explainBlocked ? null : ctxError ? null : driverRows.filter((t) => t.countInsideAcrossLeaves > 0)
+              .length === 0 ? (
+            <span style={{ fontSize: "12px", color: "#94a3b8" }}>Aucun conducteur pertinent dans cette cellule.</span>
+          ) : (
+            driverRows
+              .filter((t) => t.countInsideAcrossLeaves > 0)
+              .map((t) => (
+                <div key={t.tag} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "5px" }}>
+                  <span style={{ color: "#22c55e", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: "11px", color: "#374151", lineHeight: 1.45 }}>{formatTagLine(t)}</span>
+                </div>
+              ))
+          )}
+        </div>
+        <div style={{ marginBottom: "10px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+            <CompetIcon />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Concurrents</span>
+          </div>
+          {ctx && !ctxLoading && !explainBlocked ? (
+            <>
+              <span style={{ fontSize: "13px", color: "#374151" }}>
+                Σ {ctx.totalCompetitorPoisUnweightedAcrossLeaves} POI (tags concurrents, non pondéré)
+              </span>
+              {compRows.filter((t) => t.countInsideAcrossLeaves > 0).length > 0 ? (
+                <div style={{ marginTop: "8px", fontSize: "11px", color: "#64748b", lineHeight: 1.45 }}>
+                  {compRows
+                    .filter((t) => t.countInsideAcrossLeaves > 0)
+                    .slice(0, 8)
+                    .map((t) => (
+                      <div key={`c-${t.tag}`}>{formatTagLine(t)}</div>
+                    ))}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <span style={{ fontSize: "12px", color: "#94a3b8" }}>—</span>
+          )}
+        </div>
+        <div style={{ marginBottom: "20px", padding: "12px", background: "#f8fafc", borderRadius: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+            <DemoIcon />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#374151" }}>Démographie</span>
+          </div>
+          {ctx && ctx.populationDensityAvg != null ? (
+            <>
+              <div style={{ fontSize: "22px", fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>
+                {Math.round(ctx.populationDensityAvg).toLocaleString("fr-FR")}
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>densité moy. (± km² selon jeu de données)</div>
+              {ctx.avgIncomeAvg != null ? (
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px" }}>
+                  Revenu moy. est.{" "}
+                  <strong>{Math.round(ctx.avgIncomeAvg).toLocaleString("fr-FR")}</strong>
+                </div>
+              ) : null}
+            </>
+          ) : ctx && ctx.demographics?.usingDemographics ? (
+            <span style={{ fontSize: "12px", color: "#94a3b8" }}>Pas de ligne démo pour ces mailles.</span>
+          ) : (
+            <span style={{ fontSize: "12px", color: "#94a3b8" }}>Démographie désactivée pour ce scoring.</span>
+          )}
+          {ctx?.averagePopulationTerm != null ? (
+            <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "6px" }}>
+              Terme population (Σ formule carte) ~ {ctx.averagePopulationTerm.toFixed(4)}
+            </div>
+          ) : null}
+        </div>
+
+        <button
+          type="button"
+          style={{ width: "100%", padding: "12px", background: "#1a56db", color: "#fff", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginTop: "14px" }}
+        >
+          Exporter (bientôt)
+        </button>
       </div>
-
-      <TypewriterText
-        text={text}
-        isStreaming={isStreaming}
-        isComplete={isComplete}
-        error={error}
-        onStop={stop}
-        onRegenerate={start}
-      />
-
-      <button style={{ width: "100%", padding: "12px", background: "#1a56db", color: "#fff", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 600, cursor: "pointer", marginTop: "14px" }}>
-        View Full Report
-      </button>
-    </div>
     </>
   );
 }
@@ -202,51 +283,74 @@ function WhatIfPanel() {
 
 /* ---- Analytics ---- */
 function AnalyticsPanel() {
-  const hexagonRecord = useStore((s) => s.hexagonRecord);
+  const { hexagonRecord, selectedHexIndex, profileId } = useStore();
   const hexs = useMemo(() => Object.values(hexagonRecord), [hexagonRecord]);
-  const scored = hexs.filter((h): h is typeof h & { score: number } => h.score != null);
-  const avg =
-    scored.length > 0 ? Math.round(scored.reduce((s, h) => s + h.score, 0) / scored.length) : 78;
-  const monthlyData = [
-    { month: "Feb", score: 65 }, { month: "Apr", score: 68 },
-    { month: "Jun", score: 70 }, { month: "Aug", score: 72 },
-    { month: "Oct", score: 74 }, { month: "Dec", score: avg },
-  ];
-  const distData = useMemo(() => {
-    const b = hexs.filter((h): h is typeof h & { score: number } => h.score != null);
-    return [
-      { name: "Excellent (81-100)", value: b.filter((h) => h.score > 80).length || 3, color: "#22c55e" },
-      { name: "Good (61-80)", value: b.filter((h) => h.score > 60 && h.score <= 80).length || 3, color: "#eab308" },
-      { name: "Fair (41-60)", value: b.filter((h) => h.score > 40 && h.score <= 60).length || 4, color: "#f97316" },
-      { name: "Poor (0-40)", value: b.filter((h) => h.score <= 40).length || 5, color: "#ef4444" },
-    ];
-  }, [hexs]);
+  const stats = useMemo(
+    () => computeViewportScoreStats(hexs.map((h) => h.score)),
+    [hexs],
+  );
+  const distData = useMemo(
+    () => [
+      { name: "Excellent (81-100)", value: stats.bins.excellent, color: "#22c55e" },
+      { name: "Good (61-80)", value: stats.bins.good, color: "#eab308" },
+      { name: "Fair (41-60)", value: stats.bins.fair, color: "#f97316" },
+      { name: "Poor (0-40)", value: stats.bins.poor, color: "#ef4444" },
+    ],
+    [stats],
+  );
+
+  const [zone, setZone] = useState<ZoneStatsResponse | null>(null);
+  const [zoneLoading, setZoneLoading] = useState(false);
+  const [zoneError, setZoneError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedHexIndex || !profileId) {
+      setZone(null);
+      setZoneError(null);
+      return;
+    }
+    let cancelled = false;
+    setZoneLoading(true);
+    setZoneError(null);
+    void fetchZoneStats(selectedHexIndex, profileId)
+      .then((z) => {
+        if (!cancelled) setZone(z);
+      })
+      .catch(() => {
+        if (!cancelled) setZoneError("Impossible de charger les statistiques de zone.");
+      })
+      .finally(() => {
+        if (!cancelled) setZoneLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedHexIndex, profileId]);
   return (
     <div style={{ padding: "0 16px 20px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
         <div style={{ padding: "14px 12px", background: "#f8fafc", borderRadius: "10px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
             <TrendUpIcon color="#1a56db" /><span style={{ fontSize: "10px", color: "#94a3b8" }}>Avg Score</span>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: 800, color: "#1e293b" }}>{avg}</div>
+          <div style={{ fontSize: "24px", fontWeight: 800, color: "#1e293b" }}>
+            {stats.avgScore == null ? "—" : stats.avgScore}
+          </div>
+          <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "3px" }}>
+            {stats.scored}/{stats.total} cellules scorées
+          </div>
         </div>
         <div style={{ padding: "14px 12px", background: "#f8fafc", borderRadius: "10px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
-            <TrendUpIcon color="#22c55e" /><span style={{ fontSize: "10px", color: "#94a3b8" }}>Growth</span>
+            <TrendUpIcon color="#22c55e" /><span style={{ fontSize: "10px", color: "#94a3b8" }}>Viewport</span>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: 800, color: "#22c55e" }}>+12%</div>
+          <div style={{ fontSize: "24px", fontWeight: 800, color: "#22c55e" }}>
+            {stats.total.toLocaleString("fr-FR")}
+          </div>
+          <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "3px" }}>cellules visibles</div>
         </div>
       </div>
-      <p style={{ fontSize: "12px", fontWeight: 700, color: "#374151", marginBottom: "10px" }}>Performance Trends (Monthly)</p>
-      <ResponsiveContainer width="100%" height={110}>
-        <LineChart data={monthlyData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <XAxis dataKey="month" tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-          <YAxis domain={[60, 80]} tick={{ fontSize: 9, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-          <RTooltip contentStyle={{ fontSize: "10px", borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-          <Line type="monotone" dataKey="score" stroke="#1a56db" strokeWidth={2} dot={{ r: 3, fill: "#1a56db" }} />
-        </LineChart>
-      </ResponsiveContainer>
-      <p style={{ fontSize: "12px", fontWeight: 700, color: "#374151", margin: "20px 0 10px" }}>Score Distribution</p>
+      <p style={{ fontSize: "12px", fontWeight: 700, color: "#374151", margin: "16px 0 10px" }}>Score Distribution</p>
       <ResponsiveContainer width="100%" height={150}>
         <PieChart>
           <Pie data={distData} cx="50%" cy="50%" innerRadius={42} outerRadius={62} dataKey="value" paddingAngle={2}>
@@ -269,55 +373,49 @@ function AnalyticsPanel() {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
 
-/* ---- AI Assistant ---- */
-function AIPanel() {
-  const { selectedHexIndex, hexagonRecord } = useStore();
-  const hex = selectedHexIndex ? hexagonRecord[selectedHexIndex] : null;
-  const [input, setInput] = useState("");
-  const hexNum = hex ? parseInt(hex.h3Index.slice(-3), 16) % 100 : null;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", padding: "0 16px 16px", height: "calc(100vh - 150px)" }}>
-      <div style={{ flex: 1, overflowY: "auto", marginBottom: "12px" }}>
-        {hex ? (
-          <div style={{ display: "flex", gap: "10px" }}>
-            <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #7c3aed, #1a56db)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ color: "#fff", fontSize: "14px" }}>✦</span>
-            </div>
-            <div style={{ background: "#f8fafc", borderRadius: "12px", borderTopLeftRadius: "4px", padding: "12px 14px", flex: 1 }}>
-              <p style={{ fontSize: "12px", color: "#374151", lineHeight: 1.7, margin: 0 }}>
-                For hex #{hexNum}
-                {hex.score != null ? ` (score ${hex.score})` : ""}, this area has strong potential.
-                <br /><br />
-                Drivers: High foot traffic, Low competition.
-                <br />
-                Competition: 2 competitors within 1km.
-              </p>
-              <p style={{ fontSize: "10px", color: "#94a3b8", marginTop: "8px", marginBottom: 0 }}>Just now</p>
-            </div>
+      <p style={{ fontSize: "12px", fontWeight: 700, color: "#374151", margin: "18px 0 10px" }}>
+        Selected Hex — Zone stats
+      </p>
+      {!selectedHexIndex ? (
+        <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.6 }}>
+          Sélectionnez un hexagone pour afficher les statistiques de zone.
+        </p>
+      ) : !profileId ? (
+        <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.6 }}>
+          Sélectionnez un profil commercial pour calculer les statistiques.
+        </p>
+      ) : zoneLoading ? (
+        <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.6 }}>Chargement…</p>
+      ) : zoneError ? (
+        <p style={{ fontSize: "11px", color: "#ef4444", lineHeight: 1.6 }}>{zoneError}</p>
+      ) : zone ? (
+        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" }}>
+          <div style={{ fontSize: "11px", color: "#334155", lineHeight: 1.6 }}>
+            <div><strong>Population density</strong>: {zone.populationDensity == null ? "—" : Math.round(zone.populationDensity).toLocaleString("fr-FR")}</div>
+            <div><strong>Estimated foot traffic</strong>: {zone.estimatedFootTraffic == null ? "—" : zone.estimatedFootTraffic.toLocaleString("fr-FR")}</div>
           </div>
-        ) : (
-          <p style={{ fontSize: "12px", color: "#94a3b8", textAlign: "center", marginTop: "24px", lineHeight: 1.7 }}>
-            Sélectionnez un hexagone<br />pour obtenir une analyse AI
-          </p>
-        )}
-      </div>
-      <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me anything about locations..."
-          style={{ flex: 1, padding: "10px 14px", borderRadius: "10px", border: "1.5px solid #e2e8f0", fontSize: "12px", outline: "none", color: "#374151" }}
-        />
-        <button style={{ width: "38px", height: "38px", borderRadius: "10px", background: "#1a56db", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
-      </div>
+          <div style={{ marginTop: "10px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+              Top POIs
+            </div>
+            {zone.topPois?.length ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {zone.topPois.slice(0, 8).map((p, i) => (
+                  <div key={`${p.typeTag}-${i}`} style={{ fontSize: "11px", color: "#0f172a", lineHeight: 1.35 }}>
+                    <strong>{p.name ?? "—"}</strong>
+                    <div style={{ color: "#64748b", fontSize: "10px" }}>{p.typeTag}{p.address ? ` · ${p.address}` : ""}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: "11px", color: "#94a3b8" }}>Aucun POI trouvé dans cet hex.</div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.6 }}>—</p>
+      )}
     </div>
   );
 }

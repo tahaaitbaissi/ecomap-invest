@@ -20,5 +20,6 @@ export function getHexColor(score: number | null): string {
 
 export function getHexOpacity(score: number | null): number {
   if (score == null) return 0.22;
-  return 0.4 + (score / 100) * 0.35;
+  const s = Math.max(0, Math.min(100, score));
+  return 0.4 + (s / 100) * 0.35;
 }

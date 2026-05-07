@@ -21,5 +21,6 @@
 		<module>rmi-scoring-api</module>
 		<module>rmi-scoring-server</module>
 		<module>backend</module>
+		<module>ai-orchestrator</module>
 	</modules>
 </project>

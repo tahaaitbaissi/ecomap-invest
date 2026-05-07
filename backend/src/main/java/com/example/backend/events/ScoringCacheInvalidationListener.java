@@ -3,6 +3,7 @@ package com.example.backend.events;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.example.backend.services.ProfileScoreScaleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.Cursor;
@@ -24,11 +25,13 @@ public class ScoringCacheInvalidationListener {
     private static final int DELETE_BATCH = 500;
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final ProfileScoreScaleService profileScoreScaleService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onProfileGenerated(ProfileGeneratedEvent event) {
         UUID profileId = event.getProfileId();
-        String pattern = "score:" + profileId + ":*";
+        profileScoreScaleService.invalidate(profileId);
+        String pattern = "score:v2:" + profileId + ":*";
         ScanOptions options = ScanOptions.scanOptions().match(pattern).count(SCAN_COUNT).build();
 
         long deleted = 0;

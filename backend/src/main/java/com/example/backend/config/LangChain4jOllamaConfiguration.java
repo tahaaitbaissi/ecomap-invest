@@ -1,7 +1,9 @@
 package com.example.backend.config;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +29,20 @@ public class LangChain4jOllamaConfiguration {
                 .baseUrl(base)
                 .modelName(modelName)
                 .temperature(profileTemperature)
+                .build();
+    }
+
+    /** Streaming prose for hex score explanations (SSE). */
+    @Bean(name = "explainStreamingChatModel")
+    public StreamingChatLanguageModel explainStreamingChatModel(
+            @Value("${langchain4j.ollama.chat-model.base-url:http://localhost:11434}") String baseUrl,
+            @Value("${langchain4j.ollama.chat-model.model-name:llama3}") String modelName,
+            @Value("${app.explain.llm.temperature:0.35}") double explainTemperature) {
+        String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return OllamaStreamingChatModel.builder()
+                .baseUrl(base)
+                .modelName(modelName)
+                .temperature(explainTemperature)
                 .build();
     }
 }

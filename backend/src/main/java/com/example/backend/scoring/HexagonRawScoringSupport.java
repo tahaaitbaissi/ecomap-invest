@@ -5,7 +5,9 @@ import com.example.backend.entities.DynamicProfile;
 import com.example.backend.repositories.DemographicsRepository;
 import com.example.backend.repositories.DynamicProfileRepository;
 import com.example.backend.repositories.H3HexagonRepository;
+import com.example.backend.controllers.dto.TagWeightDto;
 import com.example.backend.repositories.PoiRepository;
+import com.example.backend.services.profile.ProfileTagCatalog;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.uber.h3core.H3Core;
 import com.uber.h3core.util.LatLng;
@@ -19,7 +21,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +37,7 @@ public class HexagonRawScoringSupport {
     private final H3HexagonRepository h3HexagonRepository;
     private final GeometryFactory geometryFactory;
     private final DynamicProfileRepository dynamicProfileRepository;
+    private final ProfileTagCatalog profileTagCatalog;
 
     @Value("${app.poi.driver-categories:category=school,category=university,category=office}")
     private String driverCategoriesConfig;
@@ -49,31 +51,55 @@ public class HexagonRawScoringSupport {
     @Value("${app.hexagon.demographic-blend:0.0}")
     private double demographicBlend;
 
-    public double computeRaw(String h3Index, HexScoringConfig cfg) {
-        double pNorm = 0.0;
-        if (cfg.useDemographics()) {
-            Optional<Demographics> d = demographicsRepository.findById(h3Index);
-            if (d.isPresent() && d.get().getPopulationDensity() != null) {
-                pNorm = Math.min(d.get().getPopulationDensity() / Math.max(1.0, demographicDensityCap), 1.0);
-            }
-        }
-        double pTerm = pNorm * 0.3;
+    /** Per-tag POI count inside the hex times weight (same geometry as {@link #weightedWithin}). */
+    public record TagHexContribution(String tag, double weight, long countInside, double contribution) {}
 
+    /** Hex-level components matching heatmap raw: drivers + demographics term − weighted competitors (all inside the cell geometry). */
+    public record HexRawParts(double driversWeighted, double pTerm, double competitorsWeighted) {}
+
+    public HexRawParts computeParts(String h3Index, HexScoringConfig cfg) {
+        double pTerm = demographicsPTerm(h3Index, cfg);
+        double driversSum = weightedWithin(cfg.driverTags(), h3Index);
+        double competitorsSum = weightedWithin(cfg.competitorTags(), h3Index);
+        return new HexRawParts(driversSum, pTerm, competitorsSum);
+    }
+
+    public double computeRaw(String h3Index, HexScoringConfig cfg) {
+        HexRawParts parts = computeParts(h3Index, cfg);
+        return parts.driversWeighted() + parts.pTerm() - parts.competitorsWeighted();
+    }
+
+    public List<TagHexContribution> listDriverContributions(String h3Index, HexScoringConfig cfg) {
+        return listWeightedContributions(cfg.driverTags(), h3Index);
+    }
+
+    public List<TagHexContribution> listCompetitorContributions(String h3Index, HexScoringConfig cfg) {
+        return listWeightedContributions(cfg.competitorTags(), h3Index);
+    }
+
+    public long competitorCountWithinHex(String h3Index, HexScoringConfig cfg) {
         boolean useHexJoin = h3HexagonRepository.existsById(h3Index);
         String wkt = useHexJoin ? null : hexCellToPolygonWkt(h3Index);
-
-        double driversSum = weightedWithin(cfg.driverTags(), useHexJoin, h3Index, wkt);
-        double competitorsSum = weightedWithin(cfg.competitorTags(), useHexJoin, h3Index, wkt);
-
-        return driversSum + pTerm - competitorsSum;
+        long total = 0;
+        for (TagWeight t : cfg.competitorTags()) {
+            long c =
+                    useHexJoin
+                            ? poiRepository.countByTypeTagWithinHex(t.tag(), h3Index)
+                            : poiRepository.countByTypeTagAndWithin(t.tag(), wkt);
+            total += c;
+        }
+        return total;
     }
 
     public HexScoringConfig buildConfigForProfile(UUID profileId) {
         DynamicProfile p = dynamicProfileRepository
                 .findById(profileId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Unknown profile: " + profileId));
-        List<TagWeight> drivers = parseTagWeights(p.getDriversConfig());
-        List<TagWeight> comp = parseTagWeights(p.getCompetitorsConfig());
+        if (p.getArchivedAt() != null) {
+            throw new java.util.NoSuchElementException("Unknown profile: " + profileId);
+        }
+        List<TagWeight> drivers = canonicalizeStoredWeights(parseTagWeights(p.getDriversConfig()), "hex-config.drivers");
+        List<TagWeight> comp = canonicalizeStoredWeights(parseTagWeights(p.getCompetitorsConfig()), "hex-config.competitors");
         if (drivers.isEmpty() && comp.isEmpty()) {
             return defaultConfig();
         }
@@ -81,6 +107,18 @@ public class HexagonRawScoringSupport {
                 drivers.isEmpty() ? defaultDrivers() : drivers,
                 comp.isEmpty() ? defaultCompetitors() : comp,
                 demographicBlend > 0);
+    }
+
+    /** Align persisted profile JSON with the API/catalog (aliases → canonical tags). */
+    private List<TagWeight> canonicalizeStoredWeights(List<TagWeight> tags, String context) {
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+        List<TagWeightDto> dtos =
+                tags.stream().map(t -> new TagWeightDto(t.tag(), t.weight())).toList();
+        return profileTagCatalog.canonicalize(dtos, context).stream()
+                .map(t -> new TagWeight(t.tag(), t.weight()))
+                .toList();
     }
 
     public HexScoringConfig defaultConfig() {
@@ -105,6 +143,43 @@ public class HexagonRawScoringSupport {
                 .filter(t -> t.tag().equals(tag))
                 .map(TagWeight::weight)
                 .findFirst();
+    }
+
+    /** Population term (0–~0.3) matching {@link #computeRaw} when demographics enabled. */
+    public double demographicsPTerm(String h3Index, HexScoringConfig cfg) {
+        if (!cfg.useDemographics()) {
+            return 0.0;
+        }
+        Optional<Demographics> d = demographicsRepository.findById(h3Index);
+        if (d.isEmpty() || d.get().getPopulationDensity() == null) {
+            return 0.0;
+        }
+        double pNorm =
+                Math.min(d.get().getPopulationDensity() / Math.max(1.0, demographicDensityCap), 1.0);
+        return pNorm * 0.3;
+    }
+
+    /** Weighted POI counts for profile drivers inside a geographic radius from a point. */
+    public double weightedDriversNearLatLng(double lat, double lng, double radiusMeters, HexScoringConfig cfg) {
+        double s = 0.0;
+        for (TagWeight t : cfg.driverTags()) {
+            s += poiRepository.countByTypeTagAndNearby(t.tag(), lat, lng, radiusMeters) * t.weight();
+        }
+        return s;
+    }
+
+    /** Total competitor-feature count near a point across all competitor tags (unweighted sum). */
+    public long competitorCountNearLatLng(double lat, double lng, double radiusMeters, HexScoringConfig cfg) {
+        long total = 0;
+        for (TagWeight t : cfg.competitorTags()) {
+            total += poiRepository.countByTypeTagAndNearby(t.tag(), lat, lng, radiusMeters);
+        }
+        return total;
+    }
+
+    /** Count of POIs with {@code preferredTag} within radius meters. */
+    public long countNearbyByTag(double lat, double lng, double radiusMeters, String typeTag) {
+        return poiRepository.countByTypeTagAndNearby(typeTag, lat, lng, radiusMeters);
     }
 
     private List<TagWeight> defaultDrivers() {
@@ -154,16 +229,26 @@ public class HexagonRawScoringSupport {
         return out;
     }
 
-    private double weightedWithin(List<TagWeight> tags, boolean useHexJoin, String h3Index, @Nullable String wkt) {
+    private double weightedWithin(List<TagWeight> tags, String h3Index) {
         double s = 0.0;
+        for (TagHexContribution row : listWeightedContributions(tags, h3Index)) {
+            s += row.contribution();
+        }
+        return s;
+    }
+
+    private List<TagHexContribution> listWeightedContributions(List<TagWeight> tags, String h3Index) {
+        boolean useHexJoin = h3HexagonRepository.existsById(h3Index);
+        String wkt = useHexJoin ? null : hexCellToPolygonWkt(h3Index);
+        List<TagHexContribution> rows = new ArrayList<>();
         for (TagWeight t : tags) {
             long c =
                     useHexJoin
                             ? poiRepository.countByTypeTagWithinHex(t.tag(), h3Index)
                             : poiRepository.countByTypeTagAndWithin(t.tag(), wkt);
-            s += c * t.weight();
+            rows.add(new TagHexContribution(t.tag(), t.weight(), c, c * t.weight()));
         }
-        return s;
+        return rows;
     }
 
     private String hexCellToPolygonWkt(String h3Index) {

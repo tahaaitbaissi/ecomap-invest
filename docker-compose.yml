@@ -89,6 +89,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-ChangeMeInProductionAtLeast32Chars123!}
       RMI_SCORING_HOST: rmi-scoring
       RMI_SCORING_REGISTRY_PORT: "1099"
+      APP_AI_ORCHESTRATOR_BASE_URL: http://ai-orchestrator:8081
+      APP_AI_ORCHESTRATOR_ENABLED: ${APP_AI_ORCHESTRATOR_ENABLED:-true}
       # OSM Overpass import: exposes POST /api/v1/admin/batch/trigger and schedules nightly 02:00 import (Casablanca bbox).
       # Set to false if you only want the 5-row CSV seed and no Overpass traffic.
       APP_BATCH_ENABLED: ${APP_BATCH_ENABLED:-true}
@@ -97,6 +99,28 @@ services:
     networks:
       - backend
       - frontend
+
+  # AI Orchestrator (distributed LLM workflow)
+  ai-orchestrator:
+    build:
+      context: .
+      dockerfile: ai-orchestrator/Dockerfile
+    container_name: ecomap-ai-orchestrator
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_started
+      ollama:
+        condition: service_started
+    environment:
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      OLLAMA_URL: http://ollama:11434
+      PORT: 8081
+    ports:
+      - "8081:8081"
+    networks:
+      - backend
 
   # Frontend Next.js — browser uses same-origin /api (proxied to backend); avoids CORS when using 127.0.0.1 vs localhost or LAN IPs.
   frontend:

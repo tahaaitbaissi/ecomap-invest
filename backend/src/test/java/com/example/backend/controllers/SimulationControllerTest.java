@@ -9,17 +9,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.backend.controllers.dto.HexagonMapResponse;
+import com.example.backend.controllers.dto.OpportunitySimulateRequest;
+import com.example.backend.controllers.dto.OpportunitySimulateResponse;
 import com.example.backend.controllers.dto.SimulateRequest;
 import com.example.backend.controllers.dto.SimulateResponse;
 import com.example.backend.controllers.dto.SimulationImpactType;
+import com.example.backend.entities.DynamicProfile;
+import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.example.backend.services.SimulationService;
+import com.example.backend.services.opportunity.OpportunityScoreService;
+import com.example.backend.services.profile.DynamicProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -33,8 +40,26 @@ class SimulationControllerTest {
     @Mock
     private SimulationService simulationService;
 
-    @InjectMocks
+    @Mock
+    private OpportunityScoreService opportunityScoreService;
+
+    @Mock
+    private HexagonRawScoringSupport hexagonRawScoringSupport;
+
+    @Mock
+    private DynamicProfileService dynamicProfileService;
+
     private SimulationController simulationController;
+
+    @BeforeEach
+    void initController() {
+        simulationController =
+                new SimulationController(
+                        simulationService,
+                        opportunityScoreService,
+                        hexagonRawScoringSupport,
+                        dynamicProfileService);
+    }
 
     private static UsernamePasswordAuthenticationToken auth() {
         return new UsernamePasswordAuthenticationToken("u@test.com", "x", Collections.emptyList());
@@ -56,6 +81,7 @@ class SimulationControllerTest {
                         eq("amenity=cafe"),
                         any(UUID.class),
                         eq("sess-1"),
+                        eq("-7.7,33.4,-7.5,33.6"),
                         eq("u@test.com")))
                 .thenReturn(body);
 
@@ -66,11 +92,44 @@ class SimulationControllerTest {
                         SimulationImpactType.DRIVER,
                         "amenity=cafe",
                         UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
-                        "sess-1");
+                        "sess-1",
+                        "-7.7,33.4,-7.5,33.6");
 
         ResponseEntity<?> res = simulationController.simulate(auth(), req);
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertEquals(body, res.getBody());
+    }
+
+    @Test
+    void post_opportunity_ok() {
+        UUID pid = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        DynamicProfile dp = new DynamicProfile();
+        dp.setId(pid);
+        dp.setName("Avocat test");
+        dp.setUserQuery("avocat");
+        var cfg = new com.example.backend.scoring.HexScoringConfig(List.of(), List.of(), false);
+        OpportunitySimulateResponse resp =
+                new OpportunitySimulateResponse(
+                        72.0,
+                        60,
+                        6,
+                        10,
+                        12,
+                        "891ea6c0d47ffff",
+                        2L,
+                        1L,
+                        "lawyer",
+                        "",
+                        Map.of());
+
+        when(dynamicProfileService.getOwnedActiveEntity("u@test.com", pid)).thenReturn(dp);
+        when(hexagonRawScoringSupport.buildConfigForProfile(pid)).thenReturn(cfg);
+        when(opportunityScoreService.compute(dp, 33.5, -7.6, cfg, false)).thenReturn(resp);
+
+        OpportunitySimulateRequest req = new OpportunitySimulateRequest(33.5, -7.6, pid, false);
+        ResponseEntity<?> entity = simulationController.opportunity(auth(), req);
+        assertEquals(HttpStatus.OK, entity.getStatusCode());
+        assertEquals(resp, entity.getBody());
     }
 
     @Test
@@ -82,6 +141,7 @@ class SimulationControllerTest {
                         anyString(),
                         any(UUID.class),
                         anyString(),
+                        anyString(),
                         anyString()))
                 .thenThrow(new AccessDeniedException("You do not own this profile"));
 
@@ -92,7 +152,8 @@ class SimulationControllerTest {
                         SimulationImpactType.DRIVER,
                         "x",
                         UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
-                        "sess-1");
+                        "sess-1",
+                        "-7.7,33.4,-7.5,33.6");
 
         ResponseEntity<?> res = simulationController.simulate(auth(), req);
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
@@ -115,7 +176,8 @@ class SimulationControllerTest {
                         SimulationImpactType.COMPETITOR,
                         "amenity=restaurant",
                         UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
-                        "sess-9");
+                        "sess-9",
+                        "-7.7,33.4,-7.5,33.6");
         String json = om.writeValueAsString(req);
         SimulateRequest back = om.readValue(json, SimulateRequest.class);
         assertEquals(req.profileId(), back.profileId());

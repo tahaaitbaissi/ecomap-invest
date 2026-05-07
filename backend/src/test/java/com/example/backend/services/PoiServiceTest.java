@@ -2,6 +2,11 @@ package com.example.backend.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.backend.controllers.dto.PoiMapResponse;
@@ -87,5 +92,26 @@ class PoiServiceTest {
         List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 0.4, 0.4);
         assertEquals(1, out.size());
         assertNull(out.get(0).saturationScore());
+    }
+
+    @Test
+    void getPoisInBoundingBox_withoutScores_skipsSaturationQueries() {
+        GeometryFactory fac = new GeometryFactory(new PrecisionModel(), 4326);
+        Poi p = new Poi();
+        p.setId(UUID.randomUUID());
+        p.setName("Cafe");
+        p.setTypeTag("category=cafe");
+        p.setLocation(fac.createPoint(new Coordinate(-7.6, 33.5)));
+
+        ReflectionTestUtils.setField(poiService, "maxBboxDeg", 0.5);
+
+        when(poiRepository.findAllInBoundingBox(0, 0, 0.4, 0.4)).thenReturn(List.of(p));
+
+        List<PoiMapResponse> out = poiService.getPoisInBoundingBox(0, 0, 0.4, 0.4, false);
+        assertEquals(1, out.size());
+        assertNull(out.get(0).saturationScore());
+        verify(poiRepository, never()).countByTypeTagAndNearby(anyString(), anyDouble(), anyDouble(), anyDouble());
+        verify(poiRepository, never()).countAllNearby(anyDouble(), anyDouble(), anyDouble());
+        verify(scoringStrategy, never()).computeSaturationScore(anyInt(), anyInt(), anyDouble());
     }
 }

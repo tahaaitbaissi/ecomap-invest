@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.UUID;
+import com.example.backend.services.ProfileScoreScaleService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,6 +26,9 @@ class ScoringCacheInvalidationListenerTest {
     @Mock
     private Cursor<String> cursor;
 
+    @Mock
+    private ProfileScoreScaleService profileScoreScaleService;
+
     @InjectMocks
     private ScoringCacheInvalidationListener listener;
 
@@ -38,6 +42,7 @@ class ScoringCacheInvalidationListenerTest {
 
         listener.onProfileGenerated(new ProfileGeneratedEvent(this, profileId, UUID.randomUUID(), "q", Instant.now()));
 
+        verify(profileScoreScaleService).invalidate(profileId);
         verify(stringRedisTemplate).scan(any(ScanOptions.class));
         verify(stringRedisTemplate).delete(anyList());
     }

@@ -93,6 +93,16 @@ app:
       # 0.0 = strict JSON; general chat may use langchain4j.ollama.chat-model.temperature elsewhere
       temperature: ${APP_PROFILE_LLM_TEMP:0.0}
 
+  explain:
+    llm:
+      temperature: ${APP_EXPLAIN_LLM_TEMP:0.35}
+    sse-timeout-ms: ${APP_EXPLAIN_SSE_MS:180000}
+
+  ai:
+    orchestrator:
+      enabled: ${APP_AI_ORCHESTRATOR_ENABLED:true}
+      base-url: ${APP_AI_ORCHESTRATOR_BASE_URL:http://ai-orchestrator:8081}
+
   # OSM import batch job + admin API (mirrors spring.batch.job.enabled intent)
   batch:
     enabled: ${APP_BATCH_ENABLED:false}
@@ -126,6 +136,13 @@ app:
 
   # H3 hexagon map API: viewport intersects persisted h3_hexagon grid (see app.h3.seed) + scoring
   hexagon:
+    # Pilot footprint (WGS84): hex seed + viewport clip. Envelope = OSM admin boundary bbox
+    # for Casablanca city (Morocco); reproduce with scripts/extract_osm_admin_bbox.py .
+    study-area:
+      sw-lng: ${HEX_STUDY_SW_LNG:-7.751238}
+      sw-lat: ${HEX_STUDY_SW_LAT:33.493342}
+      ne-lng: ${HEX_STUDY_NE_LNG:-7.4574165}
+      ne-lat: ${HEX_STUDY_NE_LAT:33.6409103}
     resolution: ${HEXAGON_RESOLUTION:9}
     max-cells: ${HEXAGON_MAX_CELLS:25000}
     # Reject bboxes larger than this span in degrees (lat and lng each)
@@ -140,6 +157,21 @@ app:
     cache:
       enabled: ${HEXAGON_SCORE_CACHE_ENABLED:true}
       ttl-seconds: ${HEXAGON_SCORE_CACHE_TTL:3600}
+    # Min/max raw scores over the seeded h3_hexagon grid — stable heatmap normalization (not bbox-local)
+    normalization:
+      max-reference-cells: ${HEXAGON_NORM_MAX_REFERENCE_CELLS:25000}
+      cache-ttl-seconds: ${HEXAGON_NORM_CACHE_TTL:86400}
+      # Robust stretch: map display using these percentiles when enough samples (else fall back to min/max)
+      percentile-low: ${HEXAGON_NORM_PCT_LOW:5}
+      percentile-high: ${HEXAGON_NORM_PCT_HIGH:95}
+      min-samples-for-percentiles: ${HEXAGON_NORM_MIN_SAMPLES_PCT:20}
+
+  # Opportunity what-if: radius for demand / fit / competition sampling
+  opportunity:
+    demand-radius-meters: ${OPPORTUNITY_DEMAND_RADIUS_M:800}
+    competitor-radius-meters: ${OPPORTUNITY_COMPETITOR_RADIUS_M:500}
+    fit-radius-meters: ${OPPORTUNITY_FIT_RADIUS_M:600}
+    demand-scale: ${OPPORTUNITY_DEMAND_SCALE:8.0}
 
   # What-if simulation: Redis keys sim_score:{sessionId}:{h3}
   simulation:
