@@ -288,7 +288,8 @@ public class HexagonScoringService {
         String cacheNs = profileId.toString();
         long poiV = scoreCacheVersionService.getPoiVersion();
         long demoV = scoreCacheVersionService.getDemoVersion();
-        String cachePrefix = RAW_CACHE_PREFIX + "p" + poiV + "d" + demoV + ":";
+        long trafficV = scoreCacheVersionService.getTrafficVersion();
+        String cachePrefix = RAW_CACHE_PREFIX + "p" + poiV + "d" + demoV + "t" + trafficV + ":";
         List<String> cacheKeys =
                 h3IndexStrings.stream().map(hi -> cachePrefix + cacheNs + ":" + hi).toList();
 

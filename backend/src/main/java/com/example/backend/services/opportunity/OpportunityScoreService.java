@@ -1,6 +1,8 @@
 package com.example.backend.services.opportunity;
 
 import com.example.backend.entities.DynamicProfile;
+import com.example.backend.foottraffic.config.FootTrafficProperties;
+import com.example.backend.foottraffic.services.FootTrafficService;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.uber.h3core.H3Core;
@@ -21,6 +23,8 @@ import org.springframework.stereotype.Service;
 public class OpportunityScoreService {
 
     private final HexagonRawScoringSupport rawScoringSupport;
+    private final FootTrafficService footTrafficService;
+    private final FootTrafficProperties footTrafficProperties;
     private final BusinessFitCatalog businessFitCatalog;
     private final OpportunityExplanationService opportunityExplanationService;
     private final H3Core h3;
@@ -51,11 +55,17 @@ public class OpportunityScoreService {
         double weightedDriversNearby =
                 rawScoringSupport.weightedDriversNearLatLng(lat, lng, demandRadiusMeters, cfg);
         double pTerm = hexParts.pTerm();
-
+        double pNorm = cfg.useDemographics() && pTerm > 0 ? pTerm / 0.3 : 0.0;
+        double trafficNorm = footTrafficService.getPeakHourlyNorm(h3Index).orElse(0.0);
+        double demandNorm =
+                trafficNorm > 0
+                        ? pNorm * footTrafficProperties.getBlendAlpha()
+                                + trafficNorm * (1.0 - footTrafficProperties.getBlendAlpha())
+                        : pNorm;
         double popPoints =
-                cfg.useDemographics()
-                        ? Math.min(35.0, pTerm > 0 ? (pTerm / 0.3) * 35.0 : 0)
-                        : 0;
+                (cfg.useDemographics() || trafficNorm > 0)
+                        ? Math.min(35.0, demandNorm * 35.0)
+                        : 0.0;
         // Demand uses max(hex cell, radius) drivers so clicks stay consistent with heatmap cell totals.
         double driverPointsHex = Math.min(70.0, Math.log1p(hexParts.driversWeighted()) * demandScale);
         double driverPointsNearby = Math.min(70.0, Math.log1p(weightedDriversNearby) * demandScale);
@@ -94,6 +104,8 @@ public class OpportunityScoreService {
         metrics.put("weightedDriversInHex", hexParts.driversWeighted());
         metrics.put("weightedDriversDemandRadius", weightedDriversNearby);
         metrics.put("demographicsPTerm", pTerm);
+        metrics.put("footTrafficNorm", trafficNorm);
+        metrics.put("demandNorm", demandNorm);
         metrics.put("competitorRadiusMeters", competitorRadiusMeters);
         metrics.put("demandRadiusMeters", demandRadiusMeters);
         metrics.put("competitorCountInHex", (double) compInHex);

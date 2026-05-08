@@ -131,6 +131,18 @@ public interface PoiRepository extends JpaRepository<Poi, UUID>, JpaSpecificatio
             """, nativeQuery = true)
     long countAllWithinHex(@Param("h3Index") String h3Index);
 
+    @Query(
+            value =
+                    """
+                    SELECT p.type_tag, COUNT(*)
+                    FROM poi p
+                    JOIN h3_hexagon h ON h.h3_index = :h3Index
+                    WHERE ST_Within(p.location, h.boundary)
+                    GROUP BY p.type_tag
+                    """,
+            nativeQuery = true)
+    List<Object[]> countTypeTagsGroupedWithinHex(@Param("h3Index") String h3Index);
+
     @Query(value = """
             SELECT p.*
             FROM poi p

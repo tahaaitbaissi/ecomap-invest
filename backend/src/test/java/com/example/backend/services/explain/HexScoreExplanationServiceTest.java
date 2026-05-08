@@ -38,7 +38,8 @@ class HexScoreExplanationServiceTest {
                         new HexExplanationContextDto.DemographicsSnapshot(true, 20000.0, 0.06),
                         15L,
                         12000.5,
-                        18000.0);
+                        18000.0,
+                        null);
 
         String facts = HexScoreExplanationService.factsPrompt(dto);
 
@@ -75,6 +76,7 @@ class HexScoreExplanationServiceTest {
                         List.of(),
                         new HexExplanationContextDto.DemographicsSnapshot(false, null, 0.0),
                         0L,
+                        null,
                         null,
                         null);
 

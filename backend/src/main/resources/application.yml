@@ -177,6 +177,21 @@ app:
   simulation:
     ttl-seconds: ${APP_SIMULATION_TTL_SECONDS:600}
 
+  # Foot traffic simulation (deterministic archetype + hourly curves; see foot_traffic_* tables)
+  foot-traffic:
+    enabled: ${APP_FOOT_TRAFFIC_ENABLED:true}
+    term-weight: ${APP_FOOT_TRAFFIC_TERM_WEIGHT:0.25}
+    # α close to 1 keeps pre-foot-traffic score magnitudes stable while still allowing traffic to contribute.
+    blend-alpha: ${APP_FOOT_TRAFFIC_BLEND_ALPHA:0.85}
+    traffic-cap: ${APP_FOOT_TRAFFIC_CAP:500.0}
+    density-cap-fallback: ${APP_FOOT_TRAFFIC_DENSITY_CAP_FALLBACK:50.0}
+    jitter-salt: ${APP_FOOT_TRAFFIC_JITTER_SALT:893451263}
+    cache:
+      ttl-seconds: ${APP_FOOT_TRAFFIC_CACHE_TTL:172800}
+    recompute:
+      scheduled-cron: ${APP_FOOT_TRAFFIC_RECOMPUTE_CRON:0 0 3 * * *}
+      batch-size: ${APP_FOOT_TRAFFIC_RECOMPUTE_BATCH:1000}
+
 # Task list compatibility keys (F1.2.1)
 jwt:
   secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}

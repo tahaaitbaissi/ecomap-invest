@@ -71,12 +71,9 @@ public class AiOrchestratorClient {
                 if (!line.startsWith("data:")) {
                     continue;
                 }
-                // Preserve token spacing. SSE allows an optional single space after `data:`.
-                // Never strip arbitrary leading whitespace because it can be part of the token.
+                // Preserve payload exactly as emitted by orchestrator, including leading spaces.
+                // (LLM streamed tokens often contain leading spaces for word boundaries.)
                 String data = line.substring("data:".length());
-                if (data.startsWith(" ")) {
-                    data = data.substring(1);
-                }
                 emitter.send(SseEmitter.event().data(data));
                 if ("[DONE]".equals(data)) {
                     return;

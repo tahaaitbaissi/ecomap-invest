@@ -18,6 +18,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link className="rounded-md px-2 py-1 text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]" href="/admin/demographics">
                 Demographics
               </Link>
+              <Link className="rounded-md px-2 py-1 text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]" href="/admin/foot-traffic">
+                Foot traffic
+              </Link>
               <Link className="rounded-md px-2 py-1 text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]" href="/admin/users">
                 Users
               </Link>

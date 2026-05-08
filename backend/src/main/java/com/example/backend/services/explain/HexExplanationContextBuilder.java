@@ -5,6 +5,10 @@ import com.example.backend.entities.Demographics;
 import com.example.backend.entities.DynamicProfile;
 import com.example.backend.repositories.DemographicsRepository;
 import com.example.backend.repositories.DynamicProfileRepository;
+import com.example.backend.foottraffic.entities.FootTrafficZoneParams;
+import com.example.backend.foottraffic.services.FootTrafficService;
+import com.example.backend.foottraffic.simulation.DayType;
+import com.example.backend.foottraffic.simulation.FootTrafficHourlyCurveGenerator;
 import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
@@ -37,6 +41,7 @@ public class HexExplanationContextBuilder {
     private final ProfileScoreScaleService profileScoreScaleService;
     private final DemographicsRepository demographicsRepository;
     private final DynamicProfileRepository dynamicProfileRepository;
+    private final FootTrafficService footTrafficService;
 
     @Value("${app.hexagon.resolution:9}")
     private int gridResolution;
@@ -91,6 +96,9 @@ public class HexExplanationContextBuilder {
 
         DemoAgg demoAgg = demographicsAggregate(leavesOnGrid, cfg);
 
+        HexExplanationContextDto.FootTrafficSnapshot footSnap =
+                buildFootTrafficSnapshot(leavesOnGrid, cfg, 5); // June seasonal for explain
+
         String aggregationNote =
                 aggregated
                         ? ("Cellule H3 résolution "
@@ -130,7 +138,92 @@ public class HexExplanationContextBuilder {
                         cfg.useDemographics(), demographicDensityCap, sum.averagePTerm()),
                 totalUwComp,
                 demoAgg.avgDensity.orElse(null),
-                demoAgg.avgIncome.orElse(null));
+                demoAgg.avgIncome.orElse(null),
+                footSnap);
+    }
+
+    private HexExplanationContextDto.FootTrafficSnapshot buildFootTrafficSnapshot(
+            List<String> leavesOnGrid, HexScoringConfig cfg, int monthIndex) {
+        if (leavesOnGrid.isEmpty()) {
+            return null;
+        }
+        Map<String, Integer> archeVotes = new LinkedHashMap<>();
+        int sumBaseline = 0;
+        int maxPeak = 0;
+        double sumTrafficTerm = 0;
+        int n = 0;
+        List<double[]> wd = new ArrayList<>();
+        List<double[]> sat = new ArrayList<>();
+        List<double[]> sun = new ArrayList<>();
+        for (String leaf : leavesOnGrid) {
+            HexRawParts p = rawScoringSupport.computeParts(leaf, cfg);
+            sumTrafficTerm += p.trafficTerm();
+            n++;
+            footTrafficService.getHourly(leaf, DayType.WD, monthIndex).ifPresent(wd::add);
+            footTrafficService.getHourly(leaf, DayType.SAT, monthIndex).ifPresent(sat::add);
+            footTrafficService.getHourly(leaf, DayType.SUN, monthIndex).ifPresent(sun::add);
+            var op = footTrafficService.getProfile(leaf);
+            if (op.isEmpty()) {
+                continue;
+            }
+            var prof = op.get();
+            archeVotes.merge(prof.getArchetype(), 1, Integer::sum);
+            sumBaseline += prof.getBaselineDaily();
+            maxPeak = Math.max(maxPeak, prof.getPeakHourly());
+        }
+        String domArch =
+                archeVotes.entrySet().stream()
+                        .max(Map.Entry.comparingByValue())
+                        .map(Map.Entry::getKey)
+                        .orElse(null);
+        if (archeVotes.isEmpty()) {
+            return null;
+        }
+        double avgTrafficTerm = n > 0 ? sumTrafficTerm / n : 0;
+        double[] wdAvg = averageHourlyArrays(wd);
+        double[] satAvg = averageHourlyArrays(sat);
+        double[] sunAvg = averageHourlyArrays(sun);
+        int peakHr = FootTrafficHourlyCurveGenerator.peakHourIndex(wdAvg);
+        Optional<FootTrafficZoneParams> zp =
+                footTrafficService.getZoneParams(domArch != null ? domArch : "RESIDENTIAL");
+        double seasonal = 1.0;
+        if (zp.isPresent() && zp.get().getSeasonalScalers() != null && monthIndex >= 0 && monthIndex < 12) {
+            Double[] sc = zp.get().getSeasonalScalers();
+            if (monthIndex < sc.length && sc[monthIndex] != null) {
+                seasonal = sc[monthIndex];
+            }
+        }
+        return new HexExplanationContextDto.FootTrafficSnapshot(
+                domArch != null ? domArch : "—",
+                sumBaseline,
+                maxPeak,
+                peakHr,
+                avgTrafficTerm,
+                "WD",
+                wdAvg,
+                satAvg,
+                sunAvg,
+                seasonal);
+    }
+
+    private static double[] averageHourlyArrays(List<double[]> arrays) {
+        if (arrays.isEmpty()) {
+            return new double[24];
+        }
+        double[] out = new double[24];
+        for (double[] a : arrays) {
+            if (a == null) {
+                continue;
+            }
+            for (int h = 0; h < 24 && h < a.length; h++) {
+                out[h] += a[h];
+            }
+        }
+        double inv = 1.0 / arrays.size();
+        for (int h = 0; h < 24; h++) {
+            out[h] *= inv;
+        }
+        return out;
     }
 
     private List<String> expandToLeavesOnSeedGrid(String h3Index) {
@@ -173,7 +266,7 @@ public class HexExplanationContextBuilder {
         for (String leaf : leavesOnGrid) {
             HexRawParts p = rawScoringSupport.computeParts(leaf, cfg);
             double raw =
-                    p.driversWeighted() + p.pTerm() - p.competitorsWeighted();
+                    p.driversWeighted() + p.demandTerm() - p.competitorsWeighted();
             rawSum += raw;
             pSum += p.pTerm();
             dSum += p.driversWeighted();

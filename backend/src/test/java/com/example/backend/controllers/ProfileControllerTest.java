@@ -234,6 +234,7 @@ class ProfileControllerTest {
                         new HexExplanationContextDto.DemographicsSnapshot(true, 20000.0, 0.1),
                         0L,
                         null,
+                        null,
                         null);
         when(hexExplanationContextBuilder.build(id, "89283082803ffff", null)).thenReturn(dto);
 

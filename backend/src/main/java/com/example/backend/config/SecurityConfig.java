@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/poi", "/api/v1/geocode", "/api/v1/hexagons")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/foot-traffic/**")
+                        .permitAll()
                         // Demo: Spring appelle le nœud RMI distant (pas de JWT pour Postman / soutenance)
                         .requestMatchers(HttpMethod.GET, "/api/v1/rmi/**")
                         .permitAll()

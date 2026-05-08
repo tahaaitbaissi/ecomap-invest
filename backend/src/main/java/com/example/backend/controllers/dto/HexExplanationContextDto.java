@@ -41,7 +41,9 @@ public record HexExplanationContextDto(
         DemographicsSnapshot demographics,
         long totalCompetitorPoisUnweightedAcrossLeaves,
         Double populationDensityAvg,
-        Double avgIncomeAvg) {
+        Double avgIncomeAvg,
+        /** Simulated foot traffic (null when no profile rows). */
+        FootTrafficSnapshot footTraffic) {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record TagContributionRow(
@@ -50,4 +52,17 @@ public record HexExplanationContextDto(
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record DemographicsSnapshot(
             Boolean usingDemographics, Double densityCapUsed, Double populationTermAverage) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record FootTrafficSnapshot(
+            String archetype,
+            int baselineDailyPedestrians,
+            int peakHourlyPedestrians,
+            int peakHour,
+            double trafficTermAverage,
+            String dayType,
+            double[] hourlyWeekday,
+            double[] hourlySaturday,
+            double[] hourlySunday,
+            double seasonalScaler) {}
 }

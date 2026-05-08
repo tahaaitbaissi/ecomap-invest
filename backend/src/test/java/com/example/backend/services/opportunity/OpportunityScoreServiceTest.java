@@ -5,14 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.example.backend.entities.DynamicProfile;
+import com.example.backend.foottraffic.config.FootTrafficProperties;
+import com.example.backend.foottraffic.services.FootTrafficService;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.example.backend.scoring.TagWeight;
 import com.uber.h3core.H3Core;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,12 @@ class OpportunityScoreServiceTest {
 
     @Mock
     private HexagonRawScoringSupport rawScoringSupport;
+
+    @Mock
+    private FootTrafficService footTrafficService;
+
+    @Mock
+    private FootTrafficProperties footTrafficProperties;
 
     @Mock
     private BusinessFitCatalog businessFitCatalog;
@@ -55,6 +65,9 @@ class OpportunityScoreServiceTest {
                 .thenReturn(
                         new BusinessFitCatalog.ResolvedArchetype(
                                 "lawyer", Pattern.compile(".*"), List.of(), 2.0, 0.0));
+        when(footTrafficService.getPeakHourlyNorm(any())).thenReturn(OptionalDouble.empty());
+        lenient().when(footTrafficProperties.getBlendAlpha()).thenReturn(0.5);
+        lenient().when(footTrafficProperties.getTermWeight()).thenReturn(0.25);
     }
 
     @Test
@@ -66,7 +79,7 @@ class OpportunityScoreServiceTest {
         HexScoringConfig cfg = new HexScoringConfig(List.of(new TagWeight("office", 1.0)), List.of(), false);
 
         when(rawScoringSupport.computeParts(eq(HEX), eq(cfg)))
-                .thenReturn(new HexagonRawScoringSupport.HexRawParts(40.0, 0.0, 0.0));
+                .thenReturn(new HexagonRawScoringSupport.HexRawParts(40.0, 0.0, 0.0, 0.0, 0.0));
         when(rawScoringSupport.weightedDriversNearLatLng(anyDouble(), anyDouble(), eq(800.0), eq(cfg)))
                 .thenReturn(0.0);
         when(rawScoringSupport.competitorCountNearLatLng(anyDouble(), anyDouble(), eq(500.0), eq(cfg)))
@@ -83,6 +96,33 @@ class OpportunityScoreServiceTest {
     }
 
     @Test
+    void demand_includes_foot_traffic_even_when_demographics_disabled() {
+        DynamicProfile profile = new DynamicProfile();
+        profile.setName("Avocat");
+        profile.setUserQuery("cabinet");
+
+        // demographics disabled
+        HexScoringConfig cfg = new HexScoringConfig(List.of(), List.of(), false);
+
+        when(rawScoringSupport.computeParts(eq(HEX), eq(cfg)))
+                .thenReturn(new HexagonRawScoringSupport.HexRawParts(0.0, 0.0, 0.0, 0.0, 0.0));
+        when(rawScoringSupport.weightedDriversNearLatLng(anyDouble(), anyDouble(), eq(800.0), eq(cfg)))
+                .thenReturn(0.0);
+        when(rawScoringSupport.competitorCountNearLatLng(anyDouble(), anyDouble(), eq(500.0), eq(cfg)))
+                .thenReturn(0L);
+        when(rawScoringSupport.competitorCountWithinHex(eq(HEX), eq(cfg))).thenReturn(0L);
+
+        when(footTrafficService.getPeakHourlyNorm(eq(HEX))).thenReturn(OptionalDouble.of(0.8));
+        when(footTrafficProperties.getBlendAlpha()).thenReturn(0.25);
+
+        var out = opportunityScoreService.compute(profile, 33.57, -7.59, cfg, false);
+
+        // pNorm=0, demandNorm = trafficNorm*(1-alpha) = 0.8*0.75 = 0.6
+        assertEquals(0.6, out.metrics().get("demandNorm"), 1e-9);
+        assertTrue(out.demandScore() > 0.0, "foot traffic should contribute to demandScore");
+    }
+
+    @Test
     void competition_saturation_uses_max_of_nearby_radius_and_hex_cell_counts() {
         DynamicProfile profile = new DynamicProfile();
         profile.setName("Avocat");
@@ -90,7 +130,7 @@ class OpportunityScoreServiceTest {
         HexScoringConfig cfg = new HexScoringConfig(List.of(), List.of(), false);
 
         when(rawScoringSupport.computeParts(eq(HEX), eq(cfg)))
-                .thenReturn(new HexagonRawScoringSupport.HexRawParts(10.0, 0.0, 3.0));
+                .thenReturn(new HexagonRawScoringSupport.HexRawParts(10.0, 0.0, 0.0, 0.0, 3.0));
         when(rawScoringSupport.weightedDriversNearLatLng(anyDouble(), anyDouble(), eq(800.0), eq(cfg)))
                 .thenReturn(0.0);
         when(rawScoringSupport.competitorCountNearLatLng(anyDouble(), anyDouble(), eq(500.0), eq(cfg)))

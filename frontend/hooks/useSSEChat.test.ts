@@ -3,12 +3,12 @@ import { parseEventDataBlock } from "./useSSEChat";
 
 describe("useSSEChat.parseEventDataBlock", () => {
   it("joins multiple data lines with newline", () => {
-    const payload = parseEventDataBlock(["data: hello", "data: world"]);
+    const payload = parseEventDataBlock(["data:hello", "data:world"]);
     expect(payload).toBe("hello\nworld");
   });
 
   it("preserves leading spaces inside tokens", () => {
-    const payload = parseEventDataBlock(["data: Hello", "data:  world"]);
+    const payload = parseEventDataBlock(["data:Hello", "data: world"]);
     expect(payload).toBe("Hello\n world");
   });
 
@@ -18,7 +18,7 @@ describe("useSSEChat.parseEventDataBlock", () => {
   });
 
   it("keeps [DONE] unchanged", () => {
-    const payload = parseEventDataBlock(["data: [DONE]"]);
+    const payload = parseEventDataBlock(["data:[DONE]"]);
     expect(payload).toBe("[DONE]");
   });
 });

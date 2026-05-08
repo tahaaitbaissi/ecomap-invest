@@ -25,10 +25,9 @@ export function parseEventDataBlock(blockLines: readonly string[]): string {
   if (dataLines.length === 0) return "";
   return dataLines
     .map((l) => {
-      // Preserve token spacing: EventSource allows an optional single space after `data:`
-      // but leading spaces can be meaningful for streamed tokens.
-      const rest = l.slice(5);
-      return rest.startsWith(" ") ? rest.slice(1) : rest;
+      // We consume raw bytes from `fetch()` (not `EventSource`), so we must preserve
+      // the payload exactly as emitted by the server, including leading spaces.
+      return l.slice(5);
     })
     .join("\n");
 }

@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.controllers.dto.ProfileScoreNormDebugResponse;
 import com.example.backend.controllers.dto.ProfileScoreNormDebugResponse.HistogramBucket;
 import com.example.backend.repositories.H3HexagonRepository;
+import com.example.backend.services.admin.ScoreCacheVersionService;
 import com.example.backend.scoring.HexScoringConfig;
 import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.example.backend.scoring.RawScoreRefBounds;
@@ -31,14 +32,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProfileScoreScaleService {
 
-    /** Bumped when cached shape/semantics change — old keys are ignored. */
-    private static final String REDIS_KEY_PREFIX = "scoreNorm:v2:";
+    /** Bumped when cached shape/semantics change — includes traffic version segment. */
+    private static final String REDIS_KEY_PREFIX = "scoreNorm:v3:t";
 
     private static final int HISTOGRAM_BINS = 10;
 
     private final HexagonRawScoringSupport rawScoringSupport;
     private final H3HexagonRepository h3HexagonRepository;
     private final ObjectMapper objectMapper;
+    private final ScoreCacheVersionService scoreCacheVersionService;
 
     @Nullable
     private final StringRedisTemplate stringRedisTemplate;
@@ -63,10 +65,12 @@ public class ProfileScoreScaleService {
             HexagonRawScoringSupport rawScoringSupport,
             H3HexagonRepository h3HexagonRepository,
             ObjectMapper objectMapper,
+            ScoreCacheVersionService scoreCacheVersionService,
             @Nullable StringRedisTemplate stringRedisTemplate) {
         this.rawScoringSupport = rawScoringSupport;
         this.h3HexagonRepository = h3HexagonRepository;
         this.objectMapper = objectMapper;
+        this.scoreCacheVersionService = scoreCacheVersionService;
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
@@ -197,8 +201,18 @@ public class ProfileScoreScaleService {
         double pMid = percentileLinear(sorted, 50.0);
         double pHi = percentileLinear(sorted, stretchPercentileHigh);
 
+        // Guardrail: when the percentile span collapses near zero (very sparse raws),
+        // percentile-based stretch makes the heatmap saturate (tiny raw -> 100).
+        // In that case, fall back to min/max so UI stays interpretable.
+        double pctSpan = pHi - pLo;
+        boolean percentileSpanOk = Double.isFinite(pctSpan) && pctSpan >= 1e-3;
+
         boolean usePercentile =
-                n >= minSamplesForPercentiles && Double.isFinite(pLo) && Double.isFinite(pHi) && pHi > pLo;
+                n >= minSamplesForPercentiles
+                        && Double.isFinite(pLo)
+                        && Double.isFinite(pHi)
+                        && pHi > pLo
+                        && percentileSpanOk;
 
         if (!Double.isFinite(gMin) || !Double.isFinite(gMax)) {
             return new StretchResult(
@@ -288,8 +302,8 @@ public class ProfileScoreScaleService {
         return out;
     }
 
-    private static String redisKey(UUID profileId) {
-        return REDIS_KEY_PREFIX + profileId;
+    private String redisKey(UUID profileId) {
+        return REDIS_KEY_PREFIX + scoreCacheVersionService.getTrafficVersion() + ":" + profileId;
     }
 
     /** Display score for heatmap cells (baseline raw only). */

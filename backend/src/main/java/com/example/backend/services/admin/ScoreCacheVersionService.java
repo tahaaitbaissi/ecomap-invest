@@ -12,6 +12,7 @@ public class ScoreCacheVersionService {
 
     static final String POI_VERSION_KEY = "score:poiVersion";
     static final String DEMO_VERSION_KEY = "score:demoVersion";
+    static final String TRAFFIC_VERSION_KEY = "score:trafficVersion";
 
     @Nullable
     private final StringRedisTemplate stringRedisTemplate;
@@ -30,6 +31,14 @@ public class ScoreCacheVersionService {
 
     public long bumpDemoVersion() {
         return incr(DEMO_VERSION_KEY);
+    }
+
+    public long getTrafficVersion() {
+        return getOrInit(TRAFFIC_VERSION_KEY);
+    }
+
+    public long bumpTrafficVersion() {
+        return incr(TRAFFIC_VERSION_KEY);
     }
 
     private long getOrInit(String key) {

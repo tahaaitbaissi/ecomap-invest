@@ -6,6 +6,8 @@ import com.example.backend.repositories.DemographicsRepository;
 import com.example.backend.repositories.DynamicProfileRepository;
 import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.controllers.dto.TagWeightDto;
+import com.example.backend.foottraffic.config.FootTrafficProperties;
+import com.example.backend.foottraffic.services.FootTrafficService;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.services.profile.ProfileTagCatalog;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,6 +34,8 @@ import org.springframework.stereotype.Component;
 public class HexagonRawScoringSupport {
 
     private final H3Core h3;
+    private final FootTrafficService footTrafficService;
+    private final FootTrafficProperties footTrafficProperties;
     private final PoiRepository poiRepository;
     private final DemographicsRepository demographicsRepository;
     private final H3HexagonRepository h3HexagonRepository;
@@ -54,19 +58,34 @@ public class HexagonRawScoringSupport {
     /** Per-tag POI count inside the hex times weight (same geometry as {@link #weightedWithin}). */
     public record TagHexContribution(String tag, double weight, long countInside, double contribution) {}
 
-    /** Hex-level components matching heatmap raw: drivers + demographics term − weighted competitors (all inside the cell geometry). */
-    public record HexRawParts(double driversWeighted, double pTerm, double competitorsWeighted) {}
+    /**
+     * Hex-level components: drivers + blended demand term (demographics + optional foot traffic) −
+     * weighted competitors.
+     */
+    public record HexRawParts(
+            double driversWeighted,
+            double pTerm,
+            double trafficTerm,
+            double demandTerm,
+            double competitorsWeighted) {}
 
     public HexRawParts computeParts(String h3Index, HexScoringConfig cfg) {
         double pTerm = demographicsPTerm(h3Index, cfg);
         double driversSum = weightedWithin(cfg.driverTags(), h3Index);
         double competitorsSum = weightedWithin(cfg.competitorTags(), h3Index);
-        return new HexRawParts(driversSum, pTerm, competitorsSum);
+        double trafficNorm = footTrafficService.getPeakHourlyNorm(h3Index).orElse(0.0);
+        double trafficTerm = trafficNorm * footTrafficProperties.getTermWeight();
+        double demandTerm =
+                trafficTerm > 0
+                        ? pTerm * footTrafficProperties.getBlendAlpha()
+                                + trafficTerm * (1.0 - footTrafficProperties.getBlendAlpha())
+                        : pTerm;
+        return new HexRawParts(driversSum, pTerm, trafficTerm, demandTerm, competitorsSum);
     }
 
     public double computeRaw(String h3Index, HexScoringConfig cfg) {
         HexRawParts parts = computeParts(h3Index, cfg);
-        return parts.driversWeighted() + parts.pTerm() - parts.competitorsWeighted();
+        return parts.driversWeighted() + parts.demandTerm() - parts.competitorsWeighted();
     }
 
     public List<TagHexContribution> listDriverContributions(String h3Index, HexScoringConfig cfg) {

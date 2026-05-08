@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ChatTurnWorkflowService {
     private final PromptBuilder promptBuilder;
 
     public void stream(AiOrchestratorChatTurnRequest req, SseEmitter emitter) {
+        AtomicBoolean finished = new AtomicBoolean(false);
         var hex = req.context().hex();
         if (hex == null) {
             throw new IllegalArgumentException("context.hex is required");
@@ -56,31 +58,35 @@ public class ChatTurnWorkflowService {
                 new StreamingResponseHandler<>() {
                     @Override
                     public void onNext(String token) {
+                        if (finished.get()) return;
                         if (token == null || token.isEmpty()) return;
                         full.append(token);
                         try {
                             emitter.send(SseEmitter.event().data(token));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                        } catch (IOException | IllegalStateException e) {
+                            // Client disconnected (broken pipe) or emitter already completed.
+                            // Stop streaming without escalating to onError (which would try to send more).
+                            sendDoneOnce(emitter, finished);
                         }
                     }
 
                     @Override
                     public void onComplete(Response<dev.langchain4j.data.message.AiMessage> response) {
                         memory.append(req.conversationId(), new ChatTurn(req.message(), full.toString()));
-                        sendDone(emitter);
+                        sendDoneOnce(emitter, finished);
                     }
 
                     @Override
                     public void onError(Throwable error) {
+                        if (finished.get()) return;
                         log.warn("Chat stream failed: {}", error.getMessage());
                         try {
                             String det = deterministicFallback(req);
                             emitter.send(SseEmitter.event().data(det));
-                        } catch (IOException ignored) {
+                        } catch (IOException | IllegalStateException ignored) {
                             // ignore
                         }
-                        sendDone(emitter);
+                        sendDoneOnce(emitter, finished);
                     }
                 });
     }
@@ -160,10 +166,11 @@ public class ChatTurnWorkflowService {
         return b.toString();
     }
 
-    private static void sendDone(SseEmitter emitter) {
+    private static void sendDoneOnce(SseEmitter emitter, AtomicBoolean finished) {
+        if (!finished.compareAndSet(false, true)) return;
         try {
             emitter.send(SseEmitter.event().data("[DONE]"));
-        } catch (IOException ignored) {
+        } catch (IOException | IllegalStateException ignored) {
             // ignore
         }
         try {

@@ -315,7 +315,7 @@ class HexagonScoringServiceTest {
         verify(raw, never()).computeRaw(anyString(), any());
         verify(vops)
                 .multiGet(argThat(keys -> keys.size() == 1
-                        && keys.iterator().next().startsWith("score:v3:p1d1:" + profileId + ":")));
+                        && keys.iterator().next().startsWith("score:v3:p1d1t0:" + profileId + ":")));
     }
 
     private static HexagonScoringService newService(
@@ -330,6 +330,7 @@ class HexagonScoringServiceTest {
         var versions = mock(com.example.backend.services.admin.ScoreCacheVersionService.class);
         Mockito.lenient().when(versions.getPoiVersion()).thenReturn(1L);
         Mockito.lenient().when(versions.getDemoVersion()).thenReturn(1L);
+        Mockito.lenient().when(versions.getTrafficVersion()).thenReturn(0L);
         return new HexagonScoringService(h3, raw, persist, h3HexagonRepository, redis, scale, versions);
     }
 
