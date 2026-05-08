@@ -212,6 +212,11 @@
 			<artifactId>resilience4j-timelimiter</artifactId>
 			<version>2.1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-ratelimiter</artifactId>
+			<version>2.1.0</version>
+		</dependency>
 
 		<!-- F14: JTA / 2PC (Atomikos); wire XA datasources when introducing a second resource manager -->
 		<dependency>

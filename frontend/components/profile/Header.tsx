@@ -41,31 +41,29 @@ export default function Header() {
   return (
     <>
       <header
-        className="ds-accent-topbar ds-accent-underline sticky top-0 z-[var(--app-shell-z-header)] flex h-[var(--app-header-h)] w-full shrink-0 items-center border-b border-[color:var(--color-border)] bg-[color:var(--color-bg-page)]/88 px-4 backdrop-blur-md md:px-8"
+        className="ds-accent-topbar ds-accent-underline sticky top-0 z-[var(--app-shell-z-header)] flex w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[color:var(--color-border)] bg-[color:var(--color-bg-page)]/88 px-4 py-2 backdrop-blur-md md:h-[var(--app-header-h)] md:flex-nowrap md:gap-3 md:px-8 md:py-0"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="group flex shrink-0 items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-[color:rgba(234,240,255,0.04)]"
-            type="button"
-            aria-label="Go to dashboard"
-          >
-            <BrandMark />
-            <div className="hidden sm:flex sm:flex-col sm:leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight text-[color:var(--color-text-primary)]">
-                EcoMap <span className="text-[color:var(--color-accent)]">Invest</span>
-              </span>
-            </div>
-          </button>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="order-1 group flex shrink-0 items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-[color:rgba(234,240,255,0.04)]"
+          type="button"
+          aria-label="Go to dashboard"
+        >
+          <BrandMark />
+          <div className="hidden sm:flex sm:flex-col sm:leading-none">
+            <span className="text-[15px] font-extrabold tracking-tight text-[color:var(--color-text-primary)]">
+              EcoMap <span className="text-[color:var(--color-accent)]">Invest</span>
+            </span>
+          </div>
+        </button>
 
-          <div className="hidden min-w-0 flex-1 justify-center md:flex">
-            <div className="w-full max-w-[680px]">
-              <MapSearchBar />
-            </div>
+        <div className="order-3 min-w-0 w-full basis-full md:order-2 md:flex md:basis-auto md:flex-1 md:justify-center">
+          <div className="mx-auto w-full md:max-w-[680px]">
+            <MapSearchBar />
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 md:gap-3">
+        <div className="order-2 ml-auto flex shrink-0 items-center gap-2 md:order-3 md:ml-0 md:gap-3">
           <div className="hidden md:block">
             <ThemeToggle />
           </div>

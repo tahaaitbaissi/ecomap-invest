@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.controllers.dto.PoiMapResponse;
+import com.example.backend.controllers.dto.PoiSearchResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.services.PoiService;
@@ -50,5 +51,15 @@ public class PoiController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
+    }
+
+    @Operation(summary = "Search POIs by name or type tag (public)")
+    @GetMapping("/search")
+    public ResponseEntity<List<PoiSearchResponse>> search(
+            @RequestParam("q") String q, @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        if (q == null || q.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(poiService.search(q.trim(), limit));
     }
 }

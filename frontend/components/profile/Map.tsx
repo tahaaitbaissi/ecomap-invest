@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DynamicMap from "@/components/map/DynamicMap";
 import type { GhostMarkerDto, MapViewport } from "@/components/map/MapViewer";
 import type { BoundingBox, PoiDto } from "@/services/api/poiService";
@@ -34,6 +34,10 @@ export default function Map({ simulationMode }: MapProps) {
   const poiBusinessFilters = useStore((s) => s.poiBusinessFilters);
   const mapFlyTo = useStore((s) => s.mapFlyTo);
   const setMapFlyTo = useStore((s) => s.setMapFlyTo);
+  const searchPin = useStore((s) => s.searchPin);
+  const setSearchPin = useStore((s) => s.setSearchPin);
+  const searchHighlightHex = useStore((s) => s.searchHighlightHex);
+  const setSearchHighlightHex = useStore((s) => s.setSearchHighlightHex);
 
   const [pois, setPois] = useState<PoiDto[]>([]);
 
@@ -175,6 +179,23 @@ export default function Map({ simulationMode }: MapProps) {
     void fetchHexagonsForViewport(b, lastZoomRef.current);
   }, [fetchHexagonsForViewport]);
 
+  const mergedHexagons = useMemo(() => {
+    if (!searchHighlightHex) return baselineHexagons;
+    const i = baselineHexagons.findIndex((h) => h.h3Index === searchHighlightHex.h3Index);
+    if (i >= 0) {
+      const next = [...baselineHexagons];
+      next[i] = searchHighlightHex;
+      return next;
+    }
+    return [...baselineHexagons, searchHighlightHex];
+  }, [baselineHexagons, searchHighlightHex]);
+
+  // Per spec: clicking the map clears the transient search pin, but should not
+  // wipe hex selection/highlight (otherwise hex interactions feel “broken”).
+  const clearSearchPinOnMapClick = useCallback(() => {
+    setSearchPin(null);
+  }, [setSearchPin]);
+
   const filteredPois = (() => {
     if (!showPoiMarkers) return [];
 
@@ -269,7 +290,7 @@ export default function Map({ simulationMode }: MapProps) {
       <div className="absolute inset-0 z-0">
         <DynamicMap
           pois={filteredPois}
-          hexagons={baselineHexagons}
+          hexagons={mergedHexagons}
           selectedHexIndex={selectedHexIndex}
           ghostMarkers={ghostMarkers}
           showHeatmap={showHeatmap}
@@ -277,7 +298,10 @@ export default function Map({ simulationMode }: MapProps) {
           showPoiMarkers={showPoiMarkers}
           onBoundsChange={handleBoundsChange}
           onHexClick={(h) => setSelectedHexIndex(h.h3Index)}
-          flyTo={mapFlyTo ? { lat: mapFlyTo.lat, lng: mapFlyTo.lng } : null}
+          flyTo={mapFlyTo}
+          searchPin={searchPin}
+          onDismissSearchPin={() => setSearchPin(null)}
+          onMapBackgroundClick={clearSearchPinOnMapClick}
           simulationMode={simulationMode}
           onSimulationMapClick={simulationMode ? onSimulationMapClick : undefined}
         />

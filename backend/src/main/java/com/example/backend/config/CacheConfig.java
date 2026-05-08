@@ -16,7 +16,7 @@ public class CacheConfig {
     @Bean
     @Primary
     CacheManager geocodeCacheManager() {
-        CaffeineCacheManager manager = new CaffeineCacheManager("geocode");
+        CaffeineCacheManager manager = new CaffeineCacheManager("geocode", "geocodeSuggest");
         manager.setCaffeine(
                 Caffeine.newBuilder()
                         .maximumSize(1_000)

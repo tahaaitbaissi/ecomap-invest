@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "@/lib/axiosInstance";
-import { fetchPoisInBbox } from "./poiService";
+import { fetchPoisInBbox, searchPois } from "./poiService";
 
 vi.mock("@/lib/axiosInstance", () => ({
   default: {
@@ -35,5 +35,20 @@ describe("fetchPoisInBbox", () => {
     expect(axios.get).toHaveBeenCalledWith(
       expect.stringMatching(/includeScore=true/),
     );
+  });
+});
+
+describe("searchPois", () => {
+  beforeEach(() => {
+    vi.mocked(axios.get).mockReset();
+    vi.mocked(axios.get).mockResolvedValue({ data: [] });
+  });
+
+  it("calls GET /api/v1/poi/search with q and limit", async () => {
+    await searchPois("Carrefour", { limit: 5 });
+    expect(axios.get).toHaveBeenCalledWith("/api/v1/poi/search", {
+      params: { q: "Carrefour", limit: 5 },
+      signal: undefined,
+    });
   });
 });

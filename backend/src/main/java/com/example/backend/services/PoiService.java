@@ -1,6 +1,7 @@
 package com.example.backend.services;
 
 import com.example.backend.controllers.dto.PoiMapResponse;
+import com.example.backend.controllers.dto.PoiSearchResponse;
 import com.example.backend.entities.Poi;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.scoring.ScoringStrategy;
@@ -59,6 +60,24 @@ public class PoiService {
     private double maxBboxDeg;
 
     private volatile Set<String> cachedDriverCategories;
+
+    @Transactional(readOnly = true)
+    public List<PoiSearchResponse> search(String q, int limit) {
+        if (q == null || q.isBlank()) {
+            return List.of();
+        }
+        int cap = Math.min(Math.max(limit, 1), 20);
+        String needle = "%" + q.trim().toLowerCase() + "%";
+        return poiRepository.searchByNameOrTag(needle, cap).stream()
+                .map(p -> new PoiSearchResponse(
+                        p.getId(),
+                        p.getName(),
+                        p.getTypeTag(),
+                        p.getLocation().getY(),
+                        p.getLocation().getX(),
+                        p.getAddress()))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<PoiMapResponse> getPoisInBoundingBox(double swLng, double swLat, double neLng, double neLat) {

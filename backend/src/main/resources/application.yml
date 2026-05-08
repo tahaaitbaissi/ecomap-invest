@@ -207,6 +207,13 @@ springdoc:
 # 6. RESILIENCE4J (Distributed Systems Resilience Patterns)
 # ==========================================
 resilience4j:
+  ratelimiter:
+    instances:
+      nominatim:
+        limit-for-period: 1
+        limit-refresh-period: 1s
+        timeout-duration: 0
+
   circuitbreaker:
     instances:
       nominatim:

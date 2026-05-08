@@ -153,6 +153,14 @@ public interface PoiRepository extends JpaRepository<Poi, UUID>, JpaSpecificatio
             """, nativeQuery = true)
     List<Poi> findTopPoisWithinHex(@Param("h3Index") String h3Index, @Param("limit") int limit);
 
+    @Query(value = """
+            SELECT * FROM poi
+            WHERE (LOWER(COALESCE(name, '')) LIKE :needle OR LOWER(type_tag) LIKE :needle)
+            ORDER BY length(COALESCE(name, '')) ASC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Poi> searchByNameOrTag(@Param("needle") String needleLowerWithPercents, @Param("limit") int limit);
+
     // Used by admin pageable search (filters + sort + pagination).
     // Note: spatial bbox filter is implemented via JPA Specification (ST_Within + ST_MakeEnvelope).
 }

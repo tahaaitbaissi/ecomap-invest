@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.backend.security.JwtAuthenticationFilter;
+import com.example.backend.controllers.dto.PoiSearchResponse;
 import com.example.backend.services.PoiService;
 import java.util.List;
 import java.util.UUID;
@@ -95,5 +96,21 @@ class PoiControllerTest {
                         .param("maxX", "c")
                         .param("maxY", "d"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void search_byName_ok() throws Exception {
+        var id = UUID.randomUUID();
+        when(poiService.search("Carrefour", 5))
+                .thenReturn(List.of(new PoiSearchResponse(id, "Carrefour X", "shop=supermarket", 33.5, -7.6, "Addr")));
+        mockMvc.perform(get("/api/v1/poi/search").param("q", "Carrefour").param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Carrefour X"))
+                .andExpect(jsonPath("$[0].typeTag").value("shop=supermarket"));
+    }
+
+    @Test
+    void search_blank_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/poi/search").param("q", "  ")).andExpect(status().isBadRequest());
     }
 }

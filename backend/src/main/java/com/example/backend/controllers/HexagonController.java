@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.controllers.dto.HexagonMapResponse;
+import com.example.backend.scoring.HexagonRawScoringSupport;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.example.backend.services.HexagonScoringService;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +36,7 @@ public class HexagonController {
 
     private final HexagonScoringService hexagonScoringService;
     private final DynamicProfileService dynamicProfileService;
+    private final HexagonRawScoringSupport hexagonRawScoringSupport;
 
     @Operation(
             summary = "Hex cells for bbox",
@@ -65,6 +68,19 @@ public class HexagonController {
             return ResponseEntity.notFound().build();
         } catch (AccessDeniedException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Single H3 cell boundary by index (gray mode, score null)")
+    @GetMapping("/h3/{h3Index}")
+    public ResponseEntity<?> byH3Index(@PathVariable("h3Index") String h3Index) {
+        try {
+            var ring = hexagonRawScoringSupport.boundaryPoints(h3Index);
+            List<HexagonMapResponse.LatLng> boundary =
+                    ring.stream().map(p -> new HexagonMapResponse.LatLng(p.lat(), p.lng())).toList();
+            return ResponseEntity.ok(new HexagonMapResponse(h3Index, null, boundary));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 

@@ -6,21 +6,41 @@ export interface GeocodingResult {
   lng: number;
 }
 
+export interface GeocodingSuggestion {
+  displayName: string;
+  lat: number;
+  lng: number;
+  southLat?: number;
+  westLng?: number;
+  northLat?: number;
+  eastLng?: number;
+  osmType?: string;
+  osmCategory?: string;
+}
+
+export async function searchPlaces(
+  q: string,
+  opts?: { limit?: number; signal?: AbortSignal },
+): Promise<GeocodingSuggestion[]> {
+  const response = await axios.get<GeocodingSuggestion[]>("/api/v1/geocode/suggest", {
+    params: { q, limit: opts?.limit ?? 8 },
+    signal: opts?.signal,
+  });
+  return response.data ?? [];
+}
+
 /**
- * Backend returns a single optional result (404 when not found).
- * UI expects a list for dropdown-style search.
+ * Back-compat: first suggestion only (same shape as legacy single-result API).
+ * Errors propagate (no silent empty list on network/5xx).
  */
-export async function searchAddress(query: string): Promise<GeocodingResult[]> {
-  try {
-    const response = await axios.get<GeocodingResult>("/api/v1/geocode", {
-      params: { q: query },
-      validateStatus: (s) => (s >= 200 && s < 300) || s === 404,
-    });
-    if (response.status === 404 || !response.data) {
-      return [];
-    }
-    return [response.data];
-  } catch {
+export async function searchAddress(
+  query: string,
+  opts?: { signal?: AbortSignal },
+): Promise<GeocodingResult[]> {
+  const rows = await searchPlaces(query.trim(), { limit: 1, signal: opts?.signal });
+  if (rows.length === 0) {
     return [];
   }
+  const r = rows[0];
+  return [{ displayName: r.displayName, lat: r.lat, lng: r.lng }];
 }

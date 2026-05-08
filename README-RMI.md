@@ -51,3 +51,21 @@ Variables : `RMI_SCORING_HOST`, `RMI_SCORING_REGISTRY_PORT`, `RMI_SERVICE_NAME` 
 Si le nœud RMI est arrêté, l’API répond **503**.
 
 Phrase soutenance : *« Le calcul de score est déporté sur un processus Java distant exposé en RMI ; l’API REST Spring joue le rôle de client RMI. »*
+
+## Recherche carte (géocodage, POI, H3)
+
+La barre de recherche du dashboard agrège **trois sources** (toutes publiques, sans JWT) :
+
+1. **Lieux** — `GET /api/v1/geocode/suggest` (Nominatim, biais viewbox Casablanca, plusieurs résultats).
+2. **POI** — `GET /api/v1/poi/search` (recherche `ILIKE` sur `name` et `type_tag`).
+3. **Hexagone** — saisie d’un index H3 (15–16 caractères hex) → `GET /api/v1/hexagons/h3/{h3Index}` (contour + `score: null`).
+
+Après `docker compose up --build -d` :
+
+```bash
+curl -s 'http://localhost:8080/api/v1/geocode/suggest?q=Maarif&limit=5' | jq
+curl -s 'http://localhost:8080/api/v1/poi/search?q=Carrefour&limit=5' | jq
+curl -s 'http://localhost:8080/api/v1/hexagons/h3/8939aab940fffff' | jq
+```
+
+Côté frontend : `npm install` dans `frontend/` (dépendance **`h3-js`** pour résoudre la cellule H3 résolution 9 à partir d’un POI).

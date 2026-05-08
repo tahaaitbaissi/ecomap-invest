@@ -18,6 +18,7 @@ import {
   clampPointToPilot,
   clampViewportBbox,
 } from "@/lib/casablancaMapConstraints";
+import type { MapFlyToPayload } from "@/store/useStore";
 
 export interface BoundingBox {
   northEast: { lat: number; lng: number };
@@ -50,7 +51,11 @@ export interface MapViewerProps {
   onBoundsChange?: (viewport: MapViewport) => void;
   onHexClick?: (hex: HexagonDto) => void;
   onSimulationMapClick?: (lat: number, lng: number) => void;
-  flyTo?: { lat: number; lng: number } | null;
+  flyTo?: MapFlyToPayload | null;
+  searchPin?: { lat: number; lng: number; label?: string } | null;
+  onDismissSearchPin?: () => void;
+  /** Fired on map container clicks (e.g. clear transient search UI). */
+  onMapBackgroundClick?: () => void;
 }
 
 function MapInteractionGate({ onInteractingChange }: { onInteractingChange: (busy: boolean) => void }) {
@@ -152,7 +157,7 @@ function SimulationClickLayer({
   return null;
 }
 
-function FlyToHandler({ flyTo }: { flyTo?: { lat: number; lng: number } | null }) {
+function FlyToHandler({ flyTo }: { flyTo?: MapFlyToPayload | null }) {
   const map = useMap();
   const lastKey = useRef<string | null>(null);
   useEffect(() => {
@@ -160,12 +165,36 @@ function FlyToHandler({ flyTo }: { flyTo?: { lat: number; lng: number } | null }
       lastKey.current = null;
       return;
     }
-    const key = `${flyTo.lat},${flyTo.lng}`;
+    const key = JSON.stringify({
+      lat: flyTo.lat,
+      lng: flyTo.lng,
+      bbox: flyTo.bbox ?? null,
+      z: flyTo.targetZoom ?? null,
+    });
     if (lastKey.current === key) return;
     lastKey.current = key;
-    const [lat, lng] = clampPointToPilot(flyTo.lat, flyTo.lng);
-    map.flyTo([lat, lng], 16);
+    if (flyTo.bbox) {
+      const [south, west, north, east] = flyTo.bbox;
+      const sw = clampPointToPilot(south, west);
+      const ne = clampPointToPilot(north, east);
+      map.fitBounds(
+        L.latLngBounds(L.latLng(sw[0], sw[1]), L.latLng(ne[0], ne[1])),
+        { padding: [40, 40], maxZoom: MAX_ZOOM },
+      );
+    } else {
+      const [lat, lng] = clampPointToPilot(flyTo.lat, flyTo.lng);
+      map.flyTo([lat, lng], flyTo.targetZoom ?? 16);
+    }
   }, [flyTo, map]);
+  return null;
+}
+
+function MapBackgroundClickLayer({ onClick }: { onClick?: () => void }) {
+  useMapEvents({
+    click() {
+      onClick?.();
+    },
+  });
   return null;
 }
 
@@ -180,6 +209,9 @@ export default function MapViewer({
   onBoundsChange,
   onHexClick,
   flyTo,
+  searchPin,
+  onDismissSearchPin,
+  onMapBackgroundClick,
   simulationMode,
   onSimulationMapClick,
 }: MapViewerProps) {
@@ -208,6 +240,7 @@ export default function MapViewer({
       <MapInteractionGate onInteractingChange={setMapBusy} />
       <BoundsTracker onBoundsChange={onBoundsChange} />
       <FlyToHandler flyTo={flyTo} />
+      <MapBackgroundClickLayer onClick={onMapBackgroundClick} />
       <SimulationClickLayer enabled={simClick} onClick={onSimulationMapClick} />
       {showHeatmap && !!hexagonsToRender.length && (
         <HexagonLayer
@@ -218,6 +251,38 @@ export default function MapViewer({
         />
       )}
       <PoiClusterLayer pois={pois} enabled={showPoiMarkers} />
+      {searchPin ? (
+        <Marker
+          position={(() => {
+            const [lat, lng] = clampPointToPilot(searchPin.lat, searchPin.lng);
+            return [lat, lng] as [number, number];
+          })()}
+          zIndexOffset={900}
+          eventHandlers={{
+            click: (e) => {
+              e.originalEvent?.stopPropagation();
+              onDismissSearchPin?.();
+            },
+          }}
+          icon={L.divIcon({
+            className: "search-pin-marker",
+            html: `<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22s7-4.4 7-11a7 7 0 10-14 0c0 6.6 7 11 7 11z" fill="#2563eb" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="12" cy="11" r="2.2" fill="#fff"/>
+              </svg>
+            </div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+          })}
+        >
+          {searchPin.label ? (
+            <Popup>
+              <span className="text-xs font-medium">{searchPin.label}</span>
+            </Popup>
+          ) : null}
+        </Marker>
+      ) : null}
       {ghostMarkers.map((g) => (
         <Marker
           key={g.id}

@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.backend.controllers.dto.HexagonMapResponse;
 import com.example.backend.security.JwtAuthenticationFilter;
+import com.example.backend.scoring.HexagonRawScoringSupport;
 import com.example.backend.services.HexagonScoringService;
 import com.example.backend.services.profile.DynamicProfileService;
 import java.util.List;
@@ -39,6 +40,8 @@ class HexagonControllerTest {
     private HexagonScoringService hexagonScoringService;
     @MockitoBean
     private DynamicProfileService dynamicProfileService;
+    @MockitoBean
+    private HexagonRawScoringSupport hexagonRawScoringSupport;
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -128,5 +131,30 @@ class HexagonControllerTest {
                 .andExpect(jsonPath("$[0].h3Index").value("8729a10ffffff"));
 
         verify(hexagonScoringService).getHexagonsInBbox("-7.6,33.5,-7.5,33.6", null, 7);
+    }
+
+    @Test
+    void byH3Index_valid_ok() throws Exception {
+        when(hexagonRawScoringSupport.boundaryPoints("891ea6c0d47ffff"))
+                .thenReturn(
+                        List.of(
+                                new HexagonRawScoringSupport.LatLngRingPoint(33.0, -7.5),
+                                new HexagonRawScoringSupport.LatLngRingPoint(33.01, -7.5)));
+
+        mockMvc.perform(get("/api/v1/hexagons/h3/891ea6c0d47ffff"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.h3Index").value("891ea6c0d47ffff"))
+                .andExpect(jsonPath("$.score").value(nullValue()))
+                .andExpect(jsonPath("$.boundary.length()").value(2));
+    }
+
+    @Test
+    void byH3Index_invalid_400() throws Exception {
+        when(hexagonRawScoringSupport.boundaryPoints("not-an-h3"))
+                .thenThrow(new IllegalArgumentException("invalid H3 index"));
+
+        mockMvc.perform(get("/api/v1/hexagons/h3/not-an-h3"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$").isString());
     }
 }

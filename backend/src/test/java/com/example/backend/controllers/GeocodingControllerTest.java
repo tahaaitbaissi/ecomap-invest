@@ -6,8 +6,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.backend.security.JwtAuthenticationFilter;
+import com.example.backend.controllers.dto.GeocodingSuggestionResponse;
 import com.example.backend.services.GeocodingService;
 import com.example.backend.services.GeocodingService.GeocodingResult;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,5 +50,31 @@ class GeocodingControllerTest {
     void search_blankQuery_badRequest() throws Exception {
         mockMvc.perform(get("/api/v1/geocode").param("q", "  "))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void suggest_multiResult_ok() throws Exception {
+        when(geocodingService.suggest("Maarif", 5))
+                .thenReturn(
+                        List.of(
+                                new GeocodingSuggestionResponse("A", 1, 2, null, null, null, null, null, null),
+                                new GeocodingSuggestionResponse("B", 3, 4, null, null, null, null, null, null)));
+        mockMvc.perform(get("/api/v1/geocode/suggest").param("q", "Maarif").param("limit", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].displayName").value("A"));
+    }
+
+    @Test
+    void suggest_empty_ok() throws Exception {
+        when(geocodingService.suggest("zzz", 8)).thenReturn(List.of());
+        mockMvc.perform(get("/api/v1/geocode/suggest").param("q", "zzz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void suggest_blank_badRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/geocode/suggest").param("q", "  ")).andExpect(status().isBadRequest());
     }
 }

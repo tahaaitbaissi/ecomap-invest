@@ -2,6 +2,15 @@ import { create } from "zustand";
 import type { HexagonDto } from "@/services/api/hexagonService";
 import type { DynamicProfileResponse } from "@/services/api/profileService";
 
+/** Map fly-to target: optional bbox (south, west, north, east) for fitBounds, or targetZoom for flyTo. */
+export type MapFlyToPayload = {
+  lat: number;
+  lng: number;
+  label?: string;
+  bbox?: [number, number, number, number];
+  targetZoom?: number;
+};
+
 export interface GhostMarker {
   id: string;
   lat: number;
@@ -13,8 +22,13 @@ export interface GhostMarker {
 interface EcomapStore {
   activeView: string;
   setActiveView: (v: string) => void;
-  mapFlyTo: { lat: number; lng: number; label?: string } | null;
-  setMapFlyTo: (p: { lat: number; lng: number; label?: string } | null) => void;
+  mapFlyTo: MapFlyToPayload | null;
+  setMapFlyTo: (p: MapFlyToPayload | null) => void;
+  searchPin: { lat: number; lng: number; label?: string } | null;
+  setSearchPin: (p: { lat: number; lng: number; label?: string } | null) => void;
+  /** Ensures H3 selection is drawable when the cell is outside the current viewport fetch. */
+  searchHighlightHex: HexagonDto | null;
+  setSearchHighlightHex: (h: HexagonDto | null) => void;
   profileId: string | null;
   setProfileId: (id: string | null) => void;
   commercialProfiles: DynamicProfileResponse[];
@@ -52,6 +66,10 @@ export const useStore = create<EcomapStore>((set) => ({
   setActiveView: (v) => set({ activeView: v }),
   mapFlyTo: null,
   setMapFlyTo: (p) => set({ mapFlyTo: p }),
+  searchPin: null,
+  setSearchPin: (p) => set({ searchPin: p }),
+  searchHighlightHex: null,
+  setSearchHighlightHex: (h) => set({ searchHighlightHex: h }),
 
   profileId: null,
   setProfileId: (id) =>
@@ -112,7 +130,13 @@ export const useStore = create<EcomapStore>((set) => ({
     set({ isSimulationActive: true, sessionId: crypto.randomUUID(), ghostMarkers: [] }),
   stopSimulation: () => set({ isSimulationActive: false }),
   resetSimulation: () =>
-    set({ isSimulationActive: false, sessionId: null, ghostMarkers: [] }),
+    set({
+      isSimulationActive: false,
+      sessionId: null,
+      ghostMarkers: [],
+      searchPin: null,
+      searchHighlightHex: null,
+    }),
   addGhostMarker: (marker) =>
     set((state) => ({
       ghostMarkers: [...state.ghostMarkers, { ...marker, id: crypto.randomUUID() }],

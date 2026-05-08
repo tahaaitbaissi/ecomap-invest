@@ -60,7 +60,14 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/poi", "/api/v1/geocode", "/api/v1/hexagons")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/poi",
+                                "/api/v1/poi/search",
+                                "/api/v1/geocode",
+                                "/api/v1/geocode/suggest",
+                                "/api/v1/hexagons",
+                                "/api/v1/hexagons/h3/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/foot-traffic/**")
                         .permitAll()

@@ -29,3 +29,9 @@ export async function fetchHexagonsInBbox(
   });
   return response.data;
 }
+
+export async function getHexagonByIndex(h3Index: string, signal?: AbortSignal): Promise<HexagonDto> {
+  const encoded = encodeURIComponent(h3Index);
+  const response = await axios.get<HexagonDto>(`/api/v1/hexagons/h3/${encoded}`, { signal });
+  return response.data;
+}
