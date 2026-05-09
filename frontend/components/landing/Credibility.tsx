@@ -21,7 +21,7 @@ export default function Credibility() {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+            <h2 className="text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
               Built for credibility
             </h2>
             <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">
@@ -36,7 +36,7 @@ export default function Credibility() {
                 <div className="text-xs uppercase tracking-wide text-[color:var(--color-text-muted)]">
                   {s.label}
                 </div>
-                <div className="mt-3 text-3xl font-black text-white">{s.value}</div>
+                <div className="mt-3 text-3xl font-black text-[color:var(--color-text-primary)]">{s.value}</div>
                 <div className="mt-2 text-sm text-[color:var(--color-text-secondary)]">{s.note}</div>
               </Card>
             ))}

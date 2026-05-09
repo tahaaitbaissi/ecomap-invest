@@ -26,7 +26,7 @@ export default function SimulationShowcase() {
                 <FlaskConical className="h-4 w-4" />
                 Simulation
               </div>
-              <h2 className="mt-4 text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+              <h2 className="mt-4 text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
                 Test before you invest
               </h2>
               <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">
@@ -40,7 +40,7 @@ export default function SimulationShowcase() {
             </div>
 
             <Card className="p-6">
-              <div className="text-sm font-semibold text-white">Scenario comparison</div>
+              <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">Scenario comparison</div>
               <div className="mt-4 grid grid-cols-1 gap-3">
                 {sims.map((s) => {
                   const bar =
@@ -55,8 +55,8 @@ export default function SimulationShowcase() {
                       className="rounded-2xl border border-[color:var(--color-border)] bg-transparent p-4 hover:bg-[color:rgba(234,240,255,0.03)] transition"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-white">{s.name}</div>
-                        <div className="text-sm font-semibold text-white">{s.score}/100</div>
+                        <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">{s.name}</div>
+                        <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">{s.score}/100</div>
                       </div>
                       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:rgba(234,240,255,0.05)]">
                         <div

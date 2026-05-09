@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * Full application smoke: Flyway, PostGIS, Redis, JPA, Batch metadata. Needs Docker
  * (see parent {@link AbstractPostgisRedisIntegrationTest}). Excluded from default
- * {@code mvn test}; run with {@code mvn test -Dtest.excluded.groups=}.
+ * {@code mvn test}; included in CI via {@code -Pwith-integration}.
  */
 @SpringBootTest
 @Tag("integration")

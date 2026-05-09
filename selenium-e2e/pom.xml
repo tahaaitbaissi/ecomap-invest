@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.example.ecomap</groupId>
+		<artifactId>ecomap-invest</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>selenium-e2e</artifactId>
+	<name>selenium-e2e</name>
+	<description>Selenium browser tests (default skipped; run with -Prun-e2e)</description>
+
+	<properties>
+		<selenium.version>4.27.0</selenium.version>
+		<!-- Skip unless -Prun-e2e (keeps mvn verify from unrelated compose stack) -->
+		<selenium.e2e.skip>true</selenium.e2e.skip>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>${selenium.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<skipTests>${selenium.e2e.skip}</skipTests>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>run-e2e</id>
+			<properties>
+				<selenium.e2e.skip>false</selenium.e2e.skip>
+			</properties>
+		</profile>
+	</profiles>
+</project>

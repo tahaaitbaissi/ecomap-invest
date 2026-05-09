@@ -1,0 +1,63 @@
+# End-to-end UI tests (Java Selenium) — no host Chrome or Node permissions required.
+#
+# Usage (from repo root):
+#   docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit
+#
+# This builds/serves the frontend, runs Selenium Chrome in a container, then executes
+# mvn -pl selenium-e2e test -Prun-e2e with networking to both services.
+
+services:
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # Standalone server must listen on all interfaces so healthchecks to 127.0.0.1 work.
+      HOSTNAME: "0.0.0.0"
+    networks:
+      - e2e
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
+      interval: 4s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  selenium:
+    image: selenium/standalone-chrome:4.27.0
+    shm_size: "2gb"
+    networks:
+      - e2e
+
+  e2e:
+    image: maven:3.9.9-eclipse-temurin-21
+    depends_on:
+      web:
+        condition: service_healthy
+      selenium:
+        condition: service_started
+    working_dir: /ws
+    volumes:
+      - .:/ws
+    environment:
+      BASE_URL: http://web:3000
+      SELENIUM_REMOTE_URL: http://selenium:4444
+    networks:
+      - e2e
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        for i in $(seq 1 90); do
+          if curl -sf "http://selenium:4444/status" >/dev/null 2>&1; then
+            break
+          fi
+          sleep 1
+        done
+        curl -sf "http://selenium:4444/status" >/dev/null
+        mvn -B -f /ws/pom.xml -pl selenium-e2e test -Prun-e2e
+
+networks:
+  e2e:
+    driver: bridge

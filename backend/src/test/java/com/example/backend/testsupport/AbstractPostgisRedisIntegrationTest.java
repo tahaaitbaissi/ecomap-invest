@@ -13,8 +13,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 /**
  * Brings up PostGIS + Redis for @SpringBootTest. Requires Docker.
  * <p>Tests that need this should also use {@code @Tag("integration")} so the default
- * {@code mvn test} (without Docker) can skip them; run all with
- * {@code mvn test -Dtest.excluded.groups=}.
+ * {@code mvn test} skips them. Run locally with Docker: {@code ./mvnw -f ../pom.xml verify -Pwith-integration}
+ * (or {@code -Dtest.excluded.groups=} on shells that allow an empty value). GitHub Actions CI uses
+ * {@code -Pwith-integration}.
  */
 @Testcontainers
 @ActiveProfiles("test")

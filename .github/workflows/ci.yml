@@ -8,6 +8,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -17,9 +18,10 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Maven verify (unit tests; integration excluded by default)
+      # Run unit + integration (@Tag("integration")) tests; Testcontainers needs Docker on the runner.
+      - name: Maven verify (includes integration / Testcontainers)
         working-directory: backend
-        run: ./mvnw -B -V -f ../pom.xml verify -Dtest.excluded.groups=integration
+        run: ./mvnw -B -V -f ../pom.xml verify -Pwith-integration
 
       - uses: actions/setup-node@v4
         with:
@@ -30,3 +32,6 @@ jobs:
       - name: Frontend install, test, build
         working-directory: frontend
         run: npm ci && npm test && npm run build
+
+      - name: E2E (Docker Compose + Java Selenium)
+        run: docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit

@@ -54,10 +54,10 @@ export default function FeaturesGrid() {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+            <h2 className="text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
               Built for decision-grade location intelligence
             </h2>
-            <p className="mt-3 text-pretty text-slate-300">
+            <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">
               A focused toolchain for exploring zones, quantifying opportunity, and explaining why
               a location scores the way it does.
             </p>
@@ -85,7 +85,7 @@ export default function FeaturesGrid() {
                       <Icon className={["h-5 w-5", iconTone].join(" ")} />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-white">{f.title}</div>
+                      <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">{f.title}</div>
                       <div className="mt-1 text-sm text-[color:var(--color-text-secondary)]">
                         {f.description}
                       </div>

@@ -336,6 +336,7 @@ export default function Map({ simulationMode }: MapProps) {
                     value={profileIdFromStore ?? ""}
                     onChange={(e) => setProfileIdStore(e.target.value || null)}
                   >
+                    <option value="">Aucun profil (neutre)</option>
                     {profiles.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.userQuery.slice(0, 40)}

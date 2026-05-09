@@ -43,6 +43,12 @@ frontend/.turbo/
 frontend/.pnpm-store/
 frontend/.vercel/
 
+# Java Selenium E2E module
+selenium-e2e/target/
+
+# Legacy Node e2e (removed); safe to delete: sudo rm -rf e2e
+/e2e/
+
 # -----------------------------
 # Misc build artifacts
 # -----------------------------

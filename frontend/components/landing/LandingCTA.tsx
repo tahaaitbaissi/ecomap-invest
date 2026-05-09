@@ -17,7 +17,7 @@ export default function LandingCTA() {
           <div className="relative">
             <Card className="relative p-8 md:p-10">
               <div className="mx-auto max-w-2xl text-center">
-                <h3 className="text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+                <h3 className="text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
                   Start exploring smarter investment zones
                 </h3>
                 <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">

@@ -19,10 +19,10 @@ export default function ValueProp() {
               <AlertTriangle className="h-4 w-4" />
               Risk
             </div>
-            <h2 className="mt-4 text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+            <h2 className="mt-4 text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
               Choosing the wrong location is expensive
             </h2>
-            <p className="mt-3 text-pretty text-slate-300">
+            <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">
               Location strategy often relies on fragmented data and manual analysis—leading to
               missed opportunities and costly investments.
             </p>
@@ -30,7 +30,7 @@ export default function ValueProp() {
 
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                 <Search className="h-4 w-4 text-[color:var(--color-accent-2)]" />
                 Fragmented market data
               </div>
@@ -40,7 +40,7 @@ export default function ValueProp() {
               </p>
             </Card>
             <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                 <BarChart3 className="h-4 w-4 text-[color:var(--color-accent)]" />
                 Manual competitor analysis
               </div>
@@ -49,7 +49,7 @@ export default function ValueProp() {
               </p>
             </Card>
             <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                 <ShieldAlert className="h-4 w-4 text-[color:rgba(239,68,68,0.85)]" />
                 Poor investment decisions
               </div>
@@ -60,7 +60,7 @@ export default function ValueProp() {
           </div>
 
           <div className="mt-10 rounded-2xl border border-[color:var(--color-border)] bg-transparent p-6 text-center">
-            <div className="text-sm font-semibold text-white">EcoMap centralizes everything.</div>
+            <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">EcoMap centralizes everything.</div>
             <p className="mt-2 text-sm text-[color:var(--color-text-secondary)]">
               A single workspace to explore zones, simulate scenarios, and justify decisions with
               explainable analytics.

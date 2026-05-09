@@ -31,6 +31,8 @@ interface EcomapStore {
   setSearchHighlightHex: (h: HexagonDto | null) => void;
   profileId: string | null;
   setProfileId: (id: string | null) => void;
+  /** Preserve explicit neutral/manual selection across profile list refreshes. */
+  profileSelectionMode: "auto" | "manual";
   commercialProfiles: DynamicProfileResponse[];
   setCommercialProfiles: (profiles: DynamicProfileResponse[]) => void;
   upsertCommercialProfile: (profile: DynamicProfileResponse) => void;
@@ -72,15 +74,19 @@ export const useStore = create<EcomapStore>((set) => ({
   setSearchHighlightHex: (h) => set({ searchHighlightHex: h }),
 
   profileId: null,
+  profileSelectionMode: "auto",
   setProfileId: (id) =>
     set((state) => ({
       profileId: id,
+      profileSelectionMode: "manual",
       selectedCommercialProfile: state.commercialProfiles.find((p) => p.id === id) ?? null,
     })),
   commercialProfiles: [],
   setCommercialProfiles: (profiles) =>
     set((state) => {
-      const selected = profiles.find((p) => p.id === state.profileId) ?? profiles[0] ?? null;
+      const currentValid = state.profileId ? profiles.find((p) => p.id === state.profileId) ?? null : null;
+      const shouldAutoPick = state.profileSelectionMode === "auto" && !currentValid;
+      const selected = currentValid ?? (shouldAutoPick ? profiles[0] ?? null : null);
       return {
         commercialProfiles: profiles,
         selectedCommercialProfile: selected,
@@ -101,7 +107,12 @@ export const useStore = create<EcomapStore>((set) => ({
     set((state) => {
       const profiles = state.commercialProfiles.filter((p) => p.id !== id);
       const removedActive = state.profileId === id;
-      const next = removedActive ? profiles[0] ?? null : state.selectedCommercialProfile;
+      const next =
+        removedActive
+          ? state.profileSelectionMode === "auto"
+            ? profiles[0] ?? null
+            : null
+          : state.selectedCommercialProfile;
       return {
         commercialProfiles: profiles,
         profileId: removedActive ? next?.id ?? null : state.profileId,

@@ -11,7 +11,7 @@ function ProductPreview() {
         {/* Map / heatmap frame */}
         <div className="md:col-span-3 p-4">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold text-white">Casablanca</div>
+            <div className="text-xs font-semibold text-[color:var(--color-text-primary)]">Casablanca</div>
             <div className="text-[11px] text-[color:var(--color-text-muted)]">H3 res-9 • Opportunity heatmap</div>
           </div>
 
@@ -32,27 +32,27 @@ function ProductPreview() {
             {/* Annotation callouts (data-first, minimal) */}
             <div className="absolute left-3 top-3 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] px-3 py-2">
               <div className="text-[10px] text-[color:var(--color-text-muted)]">Opportunity score</div>
-              <div className="text-sm font-semibold text-white">82/100</div>
+              <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">82/100</div>
             </div>
             <div className="absolute right-3 top-3 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] px-3 py-2">
               <div className="text-[10px] text-[color:var(--color-text-muted)]">Competition</div>
-              <div className="text-sm font-semibold text-white">Low</div>
+              <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">Low</div>
             </div>
             <div className="absolute bottom-3 right-3 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] px-3 py-2">
               <div className="text-[10px] text-[color:var(--color-text-muted)]">Scenario</div>
-              <div className="text-sm font-semibold text-white">Café</div>
+              <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">Café</div>
             </div>
           </div>
         </div>
 
         {/* Data panel */}
         <div className="md:col-span-2 border-t border-[color:var(--color-border)] md:border-l md:border-t-0 p-4">
-          <div className="text-xs font-semibold text-white">Signal breakdown</div>
+          <div className="text-xs font-semibold text-[color:var(--color-text-primary)]">Signal breakdown</div>
           <div className="mt-4 grid grid-cols-1 gap-3">
             <div className="rounded-[14px] border border-[color:var(--color-border)] bg-transparent p-4">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-[color:var(--color-text-muted)]">Drivers (weighted)</div>
-                <div className="text-sm font-semibold text-white">68%</div>
+                <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">68%</div>
               </div>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:rgba(234,240,255,0.05)]">
                 <div className="h-full w-[68%] rounded-full bg-[color:var(--color-accent)]" />
@@ -61,7 +61,7 @@ function ProductPreview() {
             <div className="rounded-[14px] border border-[color:var(--color-border)] bg-transparent p-4">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-[color:var(--color-text-muted)]">Saturation risk</div>
-                <div className="text-sm font-semibold text-white">32%</div>
+                <div className="text-sm font-semibold text-[color:var(--color-text-primary)]">32%</div>
               </div>
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[color:rgba(234,240,255,0.05)]">
                 <div className="h-full w-[32%] rounded-full bg-[color:rgba(234,179,8,0.85)]" />
@@ -94,7 +94,7 @@ export default function Hero() {
               <MapPinned className="h-4 w-4" />
               Predictive geomarketing
             </span>
-            <h1 className="mt-5 text-balance text-4xl font-black tracking-tight text-white md:text-6xl">
+            <h1 className="mt-5 text-balance text-4xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-6xl">
               Make smarter location decisions with predictive geomarketing
             </h1>
             <p className="mt-4 text-pretty text-lg leading-relaxed text-[color:var(--color-text-secondary)]">
@@ -113,7 +113,7 @@ export default function Hero() {
 
             <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                   <Hexagon className="h-4 w-4 text-[color:var(--color-accent-2)]" />
                   H3 scoring
                 </div>
@@ -122,7 +122,7 @@ export default function Hero() {
                 </div>
               </Card>
               <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                   <SlidersHorizontal className="h-4 w-4 text-[color:var(--color-accent)]" />
                   What-If simulation
                 </div>
@@ -131,7 +131,7 @@ export default function Hero() {
                 </div>
               </Card>
               <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                   <Sparkles className="h-4 w-4 text-[color:var(--color-accent-2)]" />
                   AI explanations
                 </div>

@@ -34,6 +34,7 @@ export default function ActiveProfileWidget() {
             onChange={(e) => setProfileId(e.target.value || null)}
             className="w-full rounded-[12px] border border-[color:var(--color-border)] bg-transparent px-3 py-2 text-[13px] font-semibold text-[color:var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[color:rgba(47,107,255,0.35)]"
           >
+            <option value="">Aucun profil (neutre)</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name || p.userQuery}
@@ -45,6 +46,11 @@ export default function ActiveProfileWidget() {
             {loading ? "Loading profiles..." : "No scoring profile yet."}
           </p>
         )}
+        {!profileId && profiles.length > 0 ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
+            Mode neutre: scores désactivés (gris). Sélectionnez un profil pour activer le scoring.
+          </p>
+        ) : null}
         {selected && (
           <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
             {selected.drivers.length} drivers · {selected.competitors.length} competitors

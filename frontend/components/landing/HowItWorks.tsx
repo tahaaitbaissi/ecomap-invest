@@ -22,10 +22,10 @@ export default function HowItWorks() {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-balance text-3xl font-black tracking-tight text-white md:text-4xl">
+            <h2 className="text-balance text-3xl font-black tracking-tight text-[color:var(--color-text-primary)] md:text-4xl">
               How it works
             </h2>
-            <p className="mt-3 text-pretty text-slate-300">
+            <p className="mt-3 text-pretty text-[color:var(--color-text-secondary)]">
               A simple workflow designed for real-world location decisions.
             </p>
           </div>
@@ -35,7 +35,7 @@ export default function HowItWorks() {
               {steps.map((s, idx) => (
                 <div key={s.title} className="relative">
                   <Card className="p-5 hover:bg-[color:rgba(234,240,255,0.03)] transition">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text-primary)]">
                       <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-[color:var(--color-border)] bg-transparent text-xs text-[color:var(--color-text-secondary)]">
                         {idx + 1}
                       </span>

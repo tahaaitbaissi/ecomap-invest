@@ -22,5 +22,6 @@
 		<module>rmi-scoring-server</module>
 		<module>backend</module>
 		<module>ai-orchestrator</module>
+		<module>selenium-e2e</module>
 	</modules>
 </project>

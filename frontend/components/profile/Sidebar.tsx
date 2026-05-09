@@ -17,13 +17,6 @@ const poiItems = [
   { id: "competitors", label: "Competitors" },
 ] as const;
 
-const legend = [
-  { color: "#FF2222", label: "0 Saturé" },
-  { color: "#FF8800", label: "30 Modéré" },
-  { color: "#FFEE00", label: "60 Opportunité" },
-  { color: "#00CC44", label: "100 Idéal" },
-];
-
 export type SidebarViewId = (typeof menuItems)[number]["id"];
 
 export interface SidebarProps {
@@ -55,88 +48,83 @@ export default function Sidebar({ activeView, onActiveViewChange }: SidebarProps
   };
 
   return (
-    <aside
-      className="w-[240px] shrink-0 overflow-y-auto border-r border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] py-5"
-    >
-      <Section title="View Mode">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentView === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setView(item.id)}
-              className={[
-                "relative mx-2 flex w-[calc(100%-16px)] items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] transition",
-                isActive
-                  ? [
-                      "bg-[color:var(--color-accent-surface)] text-[color:var(--color-text-primary)] ring-1 ring-[color:var(--color-accent-border)]",
-                      "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full",
-                      "before:bg-[color:var(--color-accent)]",
-                    ].join(" ")
-                  : "text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]",
-              ].join(" ")}
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
+      <div className="flex-1 overflow-y-auto py-5">
+        <Section title="View Mode">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentView === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setView(item.id)}
+                className={[
+                  "relative mx-2 flex w-[calc(100%-16px)] items-center gap-2 rounded-xl px-3 py-2 text-left text-[13.5px] transition",
+                  isActive
+                    ? [
+                        "bg-[color:var(--color-accent-surface)] text-[color:var(--color-text-primary)] ring-1 ring-[color:var(--color-accent-border)]",
+                        "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full",
+                        "before:bg-[color:var(--color-accent)]",
+                      ].join(" ")
+                    : "text-[color:var(--color-text-secondary)] hover:bg-[color:rgba(234,240,255,0.04)] hover:text-[color:var(--color-text-primary)]",
+                ].join(" ")}
+              >
+                <Icon
+                  className={[
+                    "h-4 w-4",
+                    isActive ? "text-[color:var(--color-text-primary)]" : "text-[color:var(--color-text-muted)]",
+                  ].join(" ")}
+                />
+                {item.label}
+              </button>
+            );
+          })}
+        </Section>
+
+        <Section title="Layer Controls">
+          {[
+            { label: "Heatmap Overlay", checked: showHeatmap, onChange: toggleHeatmap },
+            { label: "Score Labels", checked: showScoreLabels, onChange: toggleScoreLabels },
+            { label: "POI Markers", checked: showPoiMarkers, onChange: togglePoiMarkers },
+          ].map(({ label, checked, onChange }) => (
+            <label
+              key={label}
+              className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
             >
-              <Icon className={["h-4 w-4", isActive ? "text-[color:var(--color-text-primary)]" : "text-[color:var(--color-text-muted)]"].join(" ")} />
-              {item.label}
-            </button>
-          );
-        })}
-      </Section>
+              <Checkbox checked={checked} onChange={onChange} />
+              {label}
+            </label>
+          ))}
+        </Section>
 
-      <Section title="Layer Controls">
-        {[
-          { label: "Heatmap Overlay", checked: showHeatmap, onChange: toggleHeatmap },
-          { label: "Score Labels", checked: showScoreLabels, onChange: toggleScoreLabels },
-          { label: "POI Markers", checked: showPoiMarkers, onChange: togglePoiMarkers },
-        ].map(({ label, checked, onChange }) => (
-          <label
-            key={label}
-            className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
-          >
-            <Checkbox checked={checked} onChange={onChange} />
-            {label}
-          </label>
-        ))}
-      </Section>
-
-      <Section title="POI Filters">
-        {poiItems.map((poi) => (
-          <label
-            key={poi.id}
-            className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
-          >
-            <Checkbox
-              checked={poiBusinessFilters[poi.id as keyof typeof poiBusinessFilters]}
-              onChange={() => togglePoiBusinessFilter(poi.id as keyof typeof poiBusinessFilters)}
-            />
-            {poi.label}
-          </label>
-        ))}
-        <div className="px-4 pt-1 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
-          Filters apply when a commercial profile is active: POIs are shown if they match your profile’s driver/competitor tags.
-        </div>
-      </Section>
-
-      <Section title="Score Legend">
-        {legend.map((l) => (
-          <div
-            key={l.label}
-            className="flex items-center gap-2 px-4 py-1 text-[13px] text-[color:var(--color-text-secondary)]"
-          >
-            <span
-              className="inline-block h-4 w-4 shrink-0 rounded"
-              style={{ background: l.color }}
-            />
-            {l.label}
+        <Section title="POI Filters">
+          {poiItems.map((poi) => (
+            <label
+              key={poi.id}
+              className="flex cursor-pointer items-center gap-2 px-4 py-1 text-[13.5px] text-[color:var(--color-text-secondary)]"
+            >
+              <Checkbox
+                checked={poiBusinessFilters[poi.id as keyof typeof poiBusinessFilters]}
+                onChange={() => togglePoiBusinessFilter(poi.id as keyof typeof poiBusinessFilters)}
+              />
+              {poi.label}
+            </label>
+          ))}
+          <div className="px-4 pt-1 text-[11px] leading-relaxed text-[color:var(--color-text-muted)]">
+            Filters apply when a commercial profile is active: POIs are shown if they match your profile’s driver/competitor tags.
           </div>
-        ))}
-      </Section>
+        </Section>
 
-      <Section title="Profil commercial" last>
+        {/* Score legend removed (UI already self-explanatory). */}
+      </div>
+
+      <div className="sticky bottom-0 border-t border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+        <p className="px-4 pb-2 text-[11px] font-extrabold uppercase tracking-[0.07em] text-[color:var(--color-text-muted)]">
+          Profil commercial
+        </p>
         <ActiveProfileWidget />
-      </Section>
+      </div>
     </aside>
   );
 }
