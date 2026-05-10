@@ -11,18 +11,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Demo REST facade: browser/Postman → Spring Boot → RMI → remote scoring JVM.
- * Demonstrates RMI-based distributed scoring with resilience patterns (circuit breaker, retry, timeout).
- * Public for lab demos (no JWT); tighten with {@code hasRole('ADMIN')} in production.
+ * Demo REST facade: JWT (ROLE_ADMIN) → Spring Boot → RMI → remote scoring JVM.
  */
 @Slf4j
-@Tag(name = "RMI scoring demo", description = "Public demo of remote JVM saturation scoring")
+@Tag(name = "RMI scoring demo", description = "Admin-only demo of remote JVM saturation scoring")
 @RestController
 @RequestMapping("/api/v1/rmi")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class RmiScoringController {
 
     private final RmiScoringClient rmiScoringClient;

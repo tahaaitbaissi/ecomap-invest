@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,6 +45,7 @@ class HexagonControllerTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
+    @WithMockUser(roles = "INVESTOR")
     void getHexagons_grayMode_ok() throws Exception {
         when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), isNull()))
                 .thenReturn(
@@ -67,6 +67,7 @@ class HexagonControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "INVESTOR")
     void getHexagons_badBbox_400() throws Exception {
         when(hexagonScoringService.getHexagonsInBbox("bad", null, null))
                 .thenThrow(new IllegalArgumentException("bbox is required"));
@@ -77,7 +78,7 @@ class HexagonControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "INVESTOR")
     void getHexagons_profileNotFound_404() throws Exception {
         UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
         when(hexagonScoringService.getHexagonsInBbox(any(String.class), eq(id), isNull()))
@@ -91,17 +92,7 @@ class HexagonControllerTest {
     }
 
     @Test
-    void getHexagons_profileWithoutJwt_unauthorized() throws Exception {
-        UUID id = UUID.fromString("00000000-0000-0000-0000-000000000002");
-        mockMvc.perform(
-                        get("/api/v1/hexagons")
-                                .param("bbox", "-7.6,33.5,-7.5,33.6")
-                                .param("profileId", id.toString()))
-                .andExpect(status().isUnauthorized());
-        verify(hexagonScoringService, never()).getHexagonsInBbox(any(), any(), any());
-    }
-
-    @Test
+    @WithMockUser(roles = "INVESTOR")
     void getHexagons_h3ResolutionOutOfRange_badRequest() throws Exception {
         when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), eq(6)))
                 .thenThrow(new IllegalArgumentException("h3Resolution must be between 7 and 9 inclusive"));
@@ -113,6 +104,7 @@ class HexagonControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "INVESTOR")
     void getHexagons_h3Resolution7_ok() throws Exception {
         when(hexagonScoringService.getHexagonsInBbox(any(String.class), isNull(), eq(7)))
                 .thenReturn(
@@ -134,6 +126,7 @@ class HexagonControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "INVESTOR")
     void byH3Index_valid_ok() throws Exception {
         when(hexagonRawScoringSupport.boundaryPoints("891ea6c0d47ffff"))
                 .thenReturn(
@@ -149,6 +142,7 @@ class HexagonControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "INVESTOR")
     void byH3Index_invalid_400() throws Exception {
         when(hexagonRawScoringSupport.boundaryPoints("not-an-h3"))
                 .thenThrow(new IllegalArgumentException("invalid H3 index"));

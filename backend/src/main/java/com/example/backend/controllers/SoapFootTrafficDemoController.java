@@ -14,16 +14,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Demo: backend → SOAP foot-traffic simulator (same contract as batch recompute). Public for lab /
- * Postman (no JWT).
- */
-@Tag(name = "SOAP foot-traffic demo", description = "Distributed foot-traffic simulation via SOAP")
+/** Demo: ROLE_ADMIN → backend → SOAP foot-traffic simulator (same contract as batch recompute). */
+@Tag(name = "SOAP foot-traffic demo", description = "Admin-only distributed foot-traffic simulation via SOAP")
 @RestController
 @RequestMapping("/api/v1/soap-ft")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class SoapFootTrafficDemoController {
 
     private static final int SCENARIO_DEFAULT = 0;

@@ -3,9 +3,11 @@ package com.example.backend.config;
 import com.example.backend.security.JwtAuthenticationFilter;
 import com.example.backend.services.LoginService;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -16,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -46,45 +49,32 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            DaoAuthenticationProvider authenticationProvider
-    ) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
+            DaoAuthenticationProvider authenticationProvider,
+            @Value("${app.security.allow-open-registration:true}") boolean allowOpenRegistration)
+            throws Exception {
+        http.csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/**", "/error")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/health")
-                        .permitAll()
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/v1/poi",
-                                "/api/v1/poi/search",
-                                "/api/v1/geocode",
-                                "/api/v1/geocode/suggest",
-                                "/api/v1/hexagons",
-                                "/api/v1/hexagons/h3/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/foot-traffic/**")
-                        .permitAll()
-                        // Demo: Spring appelle le nœud RMI distant (pas de JWT pour Postman / soutenance)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/rmi/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/soap-ft/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/simulate")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/simulate/**")
-                        .authenticated()
-                        .requestMatchers("/api/v1/investments", "/api/v1/investments/**")
-                        .authenticated()
-                        .anyRequest()
-                        .authenticated()
-                )
+                .exceptionHandling(
+                        ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                    auth.requestMatchers("/error").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/health/live").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll();
+                    if (allowOpenRegistration) {
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll();
+                    } else {
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").hasRole("ADMIN");
+                    }
+                    auth.requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.GET, "/api-docs", "/api-docs/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/v1/rmi/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/v1/soap-ft/**").hasRole("ADMIN");
+                    auth.anyRequest().authenticated();
+                })
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -94,7 +84,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Patterns: any port on loopback (fixes localhost vs 127.0.0.1 and non-3000 dev ports)
         config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));

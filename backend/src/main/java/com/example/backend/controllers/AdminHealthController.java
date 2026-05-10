@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -8,36 +9,43 @@ import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Detailed health probes (includes RMI registry reachability). Admin-only — not for public scanners.
+ */
+@Tag(name = "Admin health")
 @RestController
-@RequestMapping("/actuator")
-public class HealthController {
+@RequestMapping("/api/v1/admin/health")
+@SecurityRequirement(name = "bearerAuth")
+public class AdminHealthController {
 
     @Value("${app.rmi.scoring.host:localhost}")
-    private String host;
+    private String rmiHost;
 
     @Value("${app.rmi.scoring.port:1099}")
-    private int port;
+    private int rmiPort;
 
     @Value("${app.rmi.scoring.service-name:ScoringService}")
     private String serviceName;
 
-    @Operation(summary = "Health: PostgreSQL app status plus RMI registry reachability")
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
+    @Operation(summary = "Detailed health including RMI registry reachability")
+    @GetMapping("/detailed")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> detailed() {
         Map<String, Object> root = new HashMap<>();
         Map<String, Object> components = new HashMap<>();
         root.put("components", components);
 
         Map<String, Object> rmi = new HashMap<>();
-        rmi.put("details", Map.of("host", host, "port", port, "serviceName", serviceName));
+        rmi.put("details", Map.of("host", rmiHost, "port", rmiPort, "serviceName", serviceName));
 
         boolean ok = false;
         try {
-            Registry reg = LocateRegistry.getRegistry(host, port);
+            Registry reg = LocateRegistry.getRegistry(rmiHost, rmiPort);
             reg.list();
             ok = true;
         } catch (Exception e) {
@@ -52,4 +60,3 @@ public class HealthController {
         return ResponseEntity.status(ok ? 200 : 503).body(root);
     }
 }
-

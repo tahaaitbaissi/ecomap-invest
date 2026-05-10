@@ -78,6 +78,8 @@ langchain4j:
 # C'est une configuration personnalisée que tu liras dans tes classes Java avec @Value("${app.security.jwt.secret}")
 app:
   security:
+    # When false, only ROLE_ADMIN may call POST /api/v1/auth/register (closed registration).
+    allow-open-registration: ${APP_SECURITY_ALLOW_OPEN_REGISTRATION:true}
     jwt:
       # Clé secrète de minimum 256 bits pour HMAC-SHA256 (Ne jamais mettre la vraie clé de prod ici)
       secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}

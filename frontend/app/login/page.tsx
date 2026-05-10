@@ -31,7 +31,19 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       setToken(res.token);
-      router.replace("/dashboard");
+      let target = "/dashboard";
+      if (typeof window !== "undefined") {
+        const raw = new URLSearchParams(window.location.search).get("from");
+        if (raw) {
+          try {
+            const decoded = decodeURIComponent(raw);
+            if (decoded.startsWith("/")) target = decoded;
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      router.replace(target);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

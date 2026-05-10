@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.077" tests="3" errors="0" skipped="0" failures="0" flakes="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.083" tests="3" errors="0" skipped="0" failures="0" flakes="0">
   <properties>
     <property name="java.specification.version" value="26"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -12,7 +12,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="US"/>
     <property name="sun.boot.library.path" value="/home/taha/.jdks/openjdk-26/lib"/>
-    <property name="sun.java.command" value="/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire/surefirebooter-20260510122223146_3.jar /home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire 2026-05-10T12-22-23_065-jvmRun1 surefire-20260510122223146_1tmp surefire_0-20260510122223146_2tmp"/>
+    <property name="sun.java.command" value="/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire/surefirebooter-20260510125456362_3.jar /home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire 2026-05-10T12-54-56_317-jvmRun1 surefire-20260510125456362_1tmp surefire_0-20260510125456362_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/test-classes:/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/classes:/home/taha/.m2/repository/org/junit/jupiter/junit-jupiter/6.0.3/junit-jupiter-6.0.3.jar:/home/taha/.m2/repository/org/junit/jupiter/junit-jupiter-api/6.0.3/junit-jupiter-api-6.0.3.jar:/home/taha/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/taha/.m2/repository/org/junit/platform/junit-platform-commons/6.0.3/junit-platform-commons-6.0.3.jar:/home/taha/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/taha/.m2/repository/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar:/home/taha/.m2/repository/org/junit/jupiter/junit-jupiter-params/6.0.3/junit-jupiter-params-6.0.3.jar:/home/taha/.m2/repository/org/junit/jupiter/junit-jupiter-engine/6.0.3/junit-jupiter-engine-6.0.3.jar:/home/taha/.m2/repository/org/junit/platform/junit-platform-engine/6.0.3/junit-platform-engine-6.0.3.jar:/home/taha/.m2/repository/org/assertj/assertj-core/3.27.7/assertj-core-3.27.7.jar:/home/taha/.m2/repository/net/bytebuddy/byte-buddy/1.17.8/byte-buddy-1.17.8.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -27,7 +27,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire/surefirebooter-20260510122223146_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/taha/college/s2.26/Projet/ecomap-invest/foot-traffic-simulation-core/target/surefire/surefirebooter-20260510125456362_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="26+35-2893"/>
     <property name="user.name" value="taha"/>
@@ -54,7 +54,7 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="70.0"/>
   </properties>
-  <testcase name="deterministic_for_same_inputs" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.049"/>
-  <testcase name="baseline_increases_with_more_pois_and_density" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.006"/>
-  <testcase name="peak_hourly_derived_from_max_curve_share" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.009"/>
+  <testcase name="deterministic_for_same_inputs" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.053"/>
+  <testcase name="baseline_increases_with_more_pois_and_density" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.004"/>
+  <testcase name="peak_hourly_derived_from_max_curve_share" classname="com.ecomap.foottraffic.simulation.FootTrafficBaselineCalculatorTest" time="0.008"/>
 </testsuite>

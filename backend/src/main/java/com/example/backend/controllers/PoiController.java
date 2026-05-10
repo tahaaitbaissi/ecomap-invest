@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/poi")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('INVESTOR','ADMIN')")
 public class PoiController {
 
     private final PoiService poiService;
@@ -53,7 +55,7 @@ public class PoiController {
         }
     }
 
-    @Operation(summary = "Search POIs by name or type tag (public)")
+    @Operation(summary = "Search POIs by name or type tag")
     @GetMapping("/search")
     public ResponseEntity<List<PoiSearchResponse>> search(
             @RequestParam("q") String q, @RequestParam(value = "limit", defaultValue = "10") int limit) {
