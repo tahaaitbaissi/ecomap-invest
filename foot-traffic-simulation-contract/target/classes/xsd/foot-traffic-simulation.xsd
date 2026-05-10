@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://ecomap.example.com/foottraffic/ws"
+            xmlns:tns="http://ecomap.example.com/foottraffic/ws"
+            elementFormDefault="qualified">
+
+    <xsd:element name="simulateCellRequest">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="h3Index" type="xsd:string"/>
+                <xsd:element name="scenarioId" type="xsd:int"/>
+                <xsd:element name="jitterSalt" type="xsd:long"/>
+                <xsd:element name="populationDensity" type="xsd:double"/>
+                <xsd:element name="avgIncome" type="xsd:double"/>
+                <xsd:element name="tagRow" type="tns:TagCountRow" minOccurs="0" maxOccurs="unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:complexType name="TagCountRow">
+        <xsd:sequence>
+            <xsd:element name="typeTag" type="xsd:string"/>
+            <xsd:element name="count" type="xsd:long"/>
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:element name="simulateCellResponse">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="archetype" type="xsd:string"/>
+                <xsd:element name="archetypeConfidence" type="xsd:double"/>
+                <xsd:element name="baselineDaily" type="xsd:int"/>
+                <xsd:element name="peakHourly" type="xsd:int"/>
+                <xsd:element name="noiseSeed" type="xsd:long"/>
+                <xsd:element name="driverPoiCount" type="xsd:int"/>
+                <xsd:element name="competitorPoiCount" type="xsd:int"/>
+                <xsd:element name="transitPoiCount" type="xsd:int"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>

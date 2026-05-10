@@ -1,0 +1,6 @@
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/SoapFootTrafficApplication.java
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/config/WebServiceConfig.java
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/entities/FootTrafficZoneParamsEntity.java
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/repo/FootTrafficZoneParamsRepository.java
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/service/ZoneParamsRegistry.java
+/home/taha/college/s2.26/Projet/ecomap-invest/soap-foot-traffic-server/src/main/java/com/ecomap/soap/ft/ws/FootTrafficSimulationEndpoint.java

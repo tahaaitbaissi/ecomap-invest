@@ -10,7 +10,8 @@ public record ZoneStatsResponse(
         String h3Index,
         UUID profileId,
         Double populationDensity,
-        Integer estimatedFootTraffic,
+        /** Simulated pedestrians per day (mean of child cells’ {@code baseline_daily} on the study grid). */
+        Integer estimatedDailyPedestrians,
         Map<String, Integer> driverCounts,
         Map<String, Integer> competitorCounts,
         List<TopPoiDto> topPois

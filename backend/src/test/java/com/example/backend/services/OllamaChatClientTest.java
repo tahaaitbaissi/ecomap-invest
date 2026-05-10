@@ -3,6 +3,7 @@ package com.example.backend.services;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.backend.config.OllamaConfiguration;
+import java.util.concurrent.ForkJoinPool;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +23,7 @@ class OllamaChatClientTest {
         server.start();
         RestClient rc = new OllamaConfiguration()
                 .ollamaRestClient("http://127.0.0.1:" + server.getPort());
-        client = new OllamaChatClient(rc);
+        client = new OllamaChatClient(rc, ForkJoinPool.commonPool());
         ReflectionTestUtils.setField(client, "modelName", "llama3");
     }
 

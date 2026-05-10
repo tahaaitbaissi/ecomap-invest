@@ -18,6 +18,9 @@
 	<description>Multi-module parent: backend + RMI scoring node</description>
 
 	<modules>
+		<module>foot-traffic-simulation-core</module>
+		<module>foot-traffic-simulation-contract</module>
+		<module>soap-foot-traffic-server</module>
 		<module>rmi-scoring-api</module>
 		<module>rmi-scoring-server</module>
 		<module>backend</module>

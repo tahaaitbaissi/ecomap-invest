@@ -1,0 +1,5 @@
+com/ecomap/ftsim/ws/xml/SimulateCellRequest.class
+com/ecomap/ftsim/ws/xml/package-info.class
+com/ecomap/ftsim/ws/xml/TagCountRow.class
+com/ecomap/ftsim/ws/xml/ObjectFactory.class
+com/ecomap/ftsim/ws/xml/SimulateCellResponse.class

@@ -36,6 +36,16 @@ spring:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
       # timeout: 2000
+      # JPA repositories live in PostgreSQL; Redis is only cache / RedisTemplate — do not scan them as Redis repos.
+      repositories:
+        enabled: false
+
+  # Apache ActiveMQ Artemis (JMS) — profile-generated → scoring cache invalidation
+  artemis:
+    mode: native
+    broker-url: ${SPRING_ARTEMIS_BROKER_URL:tcp://localhost:61616}
+    user: ${SPRING_ARTEMIS_USER:ecomap}
+    password: ${SPRING_ARTEMIS_PASSWORD:ecomap-artemis-secret}
 
   flyway:
     enabled: true
@@ -73,6 +83,11 @@ app:
       secret: ${JWT_SECRET:MaCleSecreteDeDeveloppementTresLonguePourEcoMapInvest2026!}
       # Expiratio    n du token en millisecondes (Ex: 86400000 = 24 heures)
       expiration: 86400000
+
+  # JMS queue names (Artemis); consumers invalidate Redis scoring cache on profile changes
+  jms:
+    queue:
+      profile-generated: ${APP_JMS_QUEUE_PROFILE_GENERATED:profile.generated}
 
   # Nœud RMI distant (calcul de score — Systèmes distribués)
   rmi:
@@ -133,6 +148,8 @@ app:
     # Salt for dev demographics random fields (reproducible per h3 index)
     demographics:
       salt: 893451263
+      centre-lat: ${APP_DEMOGRAPHICS_CENTRE_LAT:33.5731}
+      centre-lng: ${APP_DEMOGRAPHICS_CENTRE_LNG:-7.5898}
 
   # H3 hexagon map API: viewport intersects persisted h3_hexagon grid (see app.h3.seed) + scoring
   hexagon:
@@ -153,6 +170,9 @@ app:
     demographic-density-cap: ${HEXAGON_DEMO_DENSITY_CAP:20000.0}
     # 0.0 = ignore demographics table; 1.0 = use only demographics when a row exists
     demographic-blend: ${HEXAGON_DEMO_BLEND:0.5}
+    # When no demographics row exists, synthesize density/income (same formula as dev seeder) so Docker
+    # scoring and foot-traffic recompute are not blind. Set false for production census-only mode.
+    synthetic-demographics-when-missing: ${HEXAGON_SYNTHETIC_DEMO_WHEN_MISSING:true}
     # Per-cell raw score cache in Redis: score:{profileId|__none__}:{h3}
     cache:
       enabled: ${HEXAGON_SCORE_CACHE_ENABLED:true}
@@ -183,12 +203,23 @@ app:
     term-weight: ${APP_FOOT_TRAFFIC_TERM_WEIGHT:0.25}
     # α close to 1 keeps pre-foot-traffic score magnitudes stable while still allowing traffic to contribute.
     blend-alpha: ${APP_FOOT_TRAFFIC_BLEND_ALPHA:0.85}
-    traffic-cap: ${APP_FOOT_TRAFFIC_CAP:500.0}
+    # Lower cap + sqrt normalization avoids "all hexes look like zero traffic" in the UI
+    traffic-cap: ${APP_FOOT_TRAFFIC_CAP:120.0}
+    sqrt-normalization: ${APP_FOOT_TRAFFIC_SQRT_NORM:true}
     density-cap-fallback: ${APP_FOOT_TRAFFIC_DENSITY_CAP_FALLBACK:50.0}
     jitter-salt: ${APP_FOOT_TRAFFIC_JITTER_SALT:893451263}
+    soap:
+      enabled: ${APP_FOOT_TRAFFIC_SOAP_ENABLED:true}
+      url: ${APP_FOOT_TRAFFIC_SOAP_URL:http://soap-foot-traffic:8092/ws}
+      pool-size: ${APP_FOOT_TRAFFIC_SOAP_POOL:24}
     cache:
       ttl-seconds: ${APP_FOOT_TRAFFIC_CACHE_TTL:172800}
     recompute:
+      # Run once at boot so the UI isn't empty (skips if table already populated)
+      run-on-boot: ${APP_FOOT_TRAFFIC_RECOMPUTE_ON_BOOT:true}
+      run-on-boot-only-if-empty: ${APP_FOOT_TRAFFIC_RECOMPUTE_ON_BOOT_ONLY_IF_EMPTY:true}
+      # Nightly recompute is optional (off by default; enable explicitly)
+      scheduled-enabled: ${APP_FOOT_TRAFFIC_RECOMPUTE_SCHEDULED_ENABLED:false}
       scheduled-cron: ${APP_FOOT_TRAFFIC_RECOMPUTE_CRON:0 0 3 * * *}
       batch-size: ${APP_FOOT_TRAFFIC_RECOMPUTE_BATCH:1000}
 
@@ -269,6 +300,31 @@ resilience4j:
         sliding-window-size: 10
         sliding-window-type: COUNT_BASED
         minimum-number-of-calls: 3
+      overpassApi:
+        failure-rate-threshold: 60
+        slow-call-duration-threshold: 90s
+        slow-call-rate-threshold: 85
+        wait-duration-in-open-state: 45s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 12
+        sliding-window-type: COUNT_BASED
+        minimum-number-of-calls: 8
+      footTrafficSoap:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 20s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 15
+        minimum-number-of-calls: 5
+      aiOrchestrator:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 3s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 20s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        minimum-number-of-calls: 3
 
   retry:
     instances:
@@ -315,6 +371,21 @@ resilience4j:
           - java.net.SocketTimeoutException
           - dev.langchain4j.model.ModelDisabledException
           - java.lang.RuntimeException
+      footTrafficSoap:
+        max-attempts: 3
+        wait-duration: 400ms
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.ws.WebServiceException
+      aiOrchestrator:
+        max-attempts: 2
+        wait-duration: 300ms
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
 
   timelimiter:
     instances:
@@ -338,4 +409,10 @@ resilience4j:
         cancel-running-future: true
       profileLlm:
         timeout-duration: 120s
+        cancel-running-future: true
+      footTrafficSoap:
+        timeout-duration: 40s
+        cancel-running-future: true
+      aiOrchestrator:
+        timeout-duration: 3s
         cancel-running-future: true

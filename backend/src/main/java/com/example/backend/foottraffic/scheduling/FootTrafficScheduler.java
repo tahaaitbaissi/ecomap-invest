@@ -11,6 +11,11 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.foot-traffic", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        prefix = "app.foot-traffic.recompute",
+        name = "scheduled-enabled",
+        havingValue = "true",
+        matchIfMissing = false)
 public class FootTrafficScheduler {
 
     private final FootTrafficRecomputeService footTrafficRecomputeService;

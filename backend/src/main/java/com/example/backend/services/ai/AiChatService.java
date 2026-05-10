@@ -29,6 +29,7 @@ public class AiChatService {
     private final HexagonRawScoringSupport rawScoringSupport;
     private final H3Core h3;
     private final AiOrchestratorClient orchestratorClient;
+    private final AiOrchestratorTcpProbe orchestratorProbe;
     private final ObjectMapper objectMapper;
 
     @Async
@@ -62,9 +63,13 @@ public class AiChatService {
 
             if (orchestratorClient.isEnabled()) {
                 try {
-                    orchestratorClient.streamChatTurn(req, emitter);
-                    safeComplete(emitter);
-                    return;
+                    boolean up = orchestratorProbe.reachableAsync().join();
+                    if (up) {
+                        orchestratorClient.streamChatTurn(req, emitter);
+                        safeComplete(emitter);
+                        return;
+                    }
+                    log.warn("Orchestrator TCP probe failed, using deterministic fallback");
                 } catch (Exception e) {
                     log.warn("Orchestrator chat failed, falling back: {}", e.getMessage());
                 }

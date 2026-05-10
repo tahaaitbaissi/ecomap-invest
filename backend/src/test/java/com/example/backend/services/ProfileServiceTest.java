@@ -3,7 +3,7 @@ package com.example.backend.services;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
-import com.example.backend.events.ProfileEventPublisher;
+import com.example.backend.events.ProfileJmsPublisher;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ProfileServiceTest {
 
     @Mock
-    private ProfileEventPublisher profileEventPublisher;
+    private ProfileJmsPublisher profileJmsPublisher;
 
     @InjectMocks
     private ProfileService profileService;
@@ -25,7 +25,7 @@ class ProfileServiceTest {
         UUID pid = UUID.randomUUID();
         UUID uid = UUID.randomUUID();
         profileService.notifyProfileGeneratedAfterPersist(pid, uid, "q");
-        verify(profileEventPublisher)
+        verify(profileJmsPublisher)
                 .publishProfileGenerated(
                         eq(pid), eq(uid), eq("q"));
     }

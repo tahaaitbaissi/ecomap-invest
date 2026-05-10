@@ -1,0 +1,10 @@
+com/ecomap/foottraffic/simulation/PoiTagCounts.class
+com/ecomap/foottraffic/simulation/FootTrafficZoneClassifier$ArchetypeResult.class
+com/ecomap/foottraffic/simulation/FootTrafficSimulationEngine.class
+com/ecomap/foottraffic/simulation/FootTrafficBaselineCalculator.class
+com/ecomap/foottraffic/simulation/FootTrafficZoneParamsSnapshot.class
+com/ecomap/foottraffic/simulation/FootTrafficSimulationEngine$CellSimulationResult.class
+com/ecomap/foottraffic/simulation/FootTrafficMath.class
+com/ecomap/foottraffic/simulation/PoiFootTrafficTagAggregator.class
+com/ecomap/foottraffic/simulation/FootTrafficBaselineCalculator$BaselineResult.class
+com/ecomap/foottraffic/simulation/FootTrafficZoneClassifier.class

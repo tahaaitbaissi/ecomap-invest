@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ns:simulateCellResponse xmlns:ns="http://ecomap.example.com/foottraffic/ws">
+      <ns:archetype>COMMERCIAL_CORE</ns:archetype>
+      <ns:archetypeConfidence>0.99</ns:archetypeConfidence>
+      <ns:baselineDaily>500</ns:baselineDaily>
+      <ns:peakHourly>42</ns:peakHourly>
+      <ns:noiseSeed>7</ns:noiseSeed>
+      <ns:driverPoiCount>3</ns:driverPoiCount>
+      <ns:competitorPoiCount>2</ns:competitorPoiCount>
+      <ns:transitPoiCount>1</ns:transitPoiCount>
+    </ns:simulateCellResponse>
+  </soap:Body>
+</soap:Envelope>

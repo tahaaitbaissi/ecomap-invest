@@ -9,12 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Removes cached hex scores for a profile when it is regenerated. Keys follow {@code score:{profileId}:*}.
+ * Consumes JMS notifications when a profile is regenerated and removes cached hex scores for that
+ * profile. Keys follow {@code score:v3:*:{profileId}:*}.
  */
 @Slf4j
 @Component
@@ -27,9 +27,13 @@ public class ScoringCacheInvalidationListener {
     private final StringRedisTemplate stringRedisTemplate;
     private final ProfileScoreScaleService profileScoreScaleService;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onProfileGenerated(ProfileGeneratedEvent event) {
-        UUID profileId = event.getProfileId();
+    @JmsListener(destination = "${app.jms.queue.profile-generated}", containerFactory = "jmsListenerContainerFactory")
+    public void onProfileGeneratedMessage(ProfileGeneratedMessage message) {
+        invalidateCachesForProfile(message.profileId());
+    }
+
+    /** Visible for unit tests without JMS. */
+    void invalidateCachesForProfile(UUID profileId) {
         profileScoreScaleService.invalidate(profileId);
         String pattern = "score:v3:*:" + profileId + ":*";
         ScanOptions options = ScanOptions.scanOptions().match(pattern).count(SCAN_COUNT).build();

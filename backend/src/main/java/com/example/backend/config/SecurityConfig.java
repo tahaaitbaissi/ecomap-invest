@@ -74,6 +74,8 @@ public class SecurityConfig {
                         // Demo: Spring appelle le nœud RMI distant (pas de JWT pour Postman / soutenance)
                         .requestMatchers(HttpMethod.GET, "/api/v1/rmi/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/soap-ft/**")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/simulate")
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/simulate/**")

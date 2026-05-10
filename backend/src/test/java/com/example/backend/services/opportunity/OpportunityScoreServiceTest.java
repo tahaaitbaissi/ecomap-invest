@@ -65,7 +65,7 @@ class OpportunityScoreServiceTest {
                 .thenReturn(
                         new BusinessFitCatalog.ResolvedArchetype(
                                 "lawyer", Pattern.compile(".*"), List.of(), 2.0, 0.0));
-        when(footTrafficService.getPeakHourlyNorm(any())).thenReturn(OptionalDouble.empty());
+        when(footTrafficService.getTrafficIntensityNorm(any())).thenReturn(OptionalDouble.empty());
         lenient().when(footTrafficProperties.getBlendAlpha()).thenReturn(0.5);
         lenient().when(footTrafficProperties.getTermWeight()).thenReturn(0.25);
     }
@@ -112,7 +112,7 @@ class OpportunityScoreServiceTest {
                 .thenReturn(0L);
         when(rawScoringSupport.competitorCountWithinHex(eq(HEX), eq(cfg))).thenReturn(0L);
 
-        when(footTrafficService.getPeakHourlyNorm(eq(HEX))).thenReturn(OptionalDouble.of(0.8));
+        when(footTrafficService.getTrafficIntensityNorm(eq(HEX))).thenReturn(OptionalDouble.of(0.8));
         when(footTrafficProperties.getBlendAlpha()).thenReturn(0.25);
 
         var out = opportunityScoreService.compute(profile, 33.57, -7.59, cfg, false);

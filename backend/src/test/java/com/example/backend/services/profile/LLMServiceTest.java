@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import java.util.concurrent.ForkJoinPool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +26,9 @@ class LLMServiceTest {
 
     @BeforeEach
     void setUp() {
-        llmService = new LLMService(chatLanguageModel, new ObjectMapper(), new ProfileTagCatalog());
+        llmService =
+                new LLMService(
+                        chatLanguageModel, new ObjectMapper(), new ProfileTagCatalog(), ForkJoinPool.commonPool());
     }
 
     @Test

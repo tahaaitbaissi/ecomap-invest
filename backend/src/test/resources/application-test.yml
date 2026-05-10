@@ -28,6 +28,9 @@ app:
   h3:
     seed:
       enabled: false
+  hexagon:
+    # Integration tests use empty demographics unless seeded; avoid synthetic density affecting scores.
+    synthetic-demographics-when-missing: false
   security:
     jwt:
       secret: TestJwtSecretKeyForUnitAndIntegrationTestsMustBe256BitLongString!!

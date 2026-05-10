@@ -56,7 +56,7 @@ public class OpportunityScoreService {
                 rawScoringSupport.weightedDriversNearLatLng(lat, lng, demandRadiusMeters, cfg);
         double pTerm = hexParts.pTerm();
         double pNorm = cfg.useDemographics() && pTerm > 0 ? pTerm / 0.3 : 0.0;
-        double trafficNorm = footTrafficService.getPeakHourlyNorm(h3Index).orElse(0.0);
+        double trafficNorm = footTrafficService.getTrafficIntensityNorm(h3Index).orElse(0.0);
         double demandNorm =
                 trafficNorm > 0
                         ? pNorm * footTrafficProperties.getBlendAlpha()

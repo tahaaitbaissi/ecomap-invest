@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.backend.demographics.DeterministicDemographicsFallback;
 import com.example.backend.entities.H3Hexagon;
 import com.example.backend.foottraffic.config.FootTrafficProperties;
 import com.example.backend.foottraffic.entities.FootTrafficCellProfile;
@@ -88,6 +89,13 @@ class FootTrafficRecomputeServiceTest {
         when(demoRepo.findById(any())).thenReturn(Optional.empty());
         when(cellRepo.findById(any())).thenReturn(Optional.empty()); // skip imputation
 
+        var demoFallback = Mockito.mock(DeterministicDemographicsFallback.class);
+        when(demoFallback.populationDensity(any(), any())).thenReturn(0.0);
+        when(demoFallback.avgIncome(any(), any())).thenReturn(0.0);
+
+        var soap = Mockito.mock(FootTrafficSoapSimulationClient.class);
+        when(soap.isReady()).thenReturn(false);
+
         var svc =
                 new FootTrafficRecomputeService(
                         properties,
@@ -98,7 +106,9 @@ class FootTrafficRecomputeServiceTest {
                         zoneRepo,
                         footTrafficService,
                         versions,
-                        h3);
+                        soap,
+                        h3,
+                        demoFallback);
 
         var res = svc.recomputeAll(null, null);
 
@@ -146,6 +156,10 @@ class FootTrafficRecomputeServiceTest {
         when(poiRepo.countTypeTagsGroupedWithinHex(any())).thenReturn(List.of());
         when(demoRepo.findById(any())).thenReturn(Optional.empty());
 
+        var demoFallback = Mockito.mock(DeterministicDemographicsFallback.class);
+        when(demoFallback.populationDensity(any(), any())).thenReturn(0.0);
+        when(demoFallback.avgIncome(any(), any())).thenReturn(0.0);
+
         var centerProf = new FootTrafficCellProfile();
         centerProf.setH3Index("center");
         centerProf.setArchetype("RURAL");
@@ -171,6 +185,9 @@ class FootTrafficRecomputeServiceTest {
         when(h3.h3ToString(2L)).thenReturn("neighbor");
         when(h3.h3ToString(1L)).thenReturn("center");
 
+        var soap = Mockito.mock(FootTrafficSoapSimulationClient.class);
+        when(soap.isReady()).thenReturn(false);
+
         var svc =
                 new FootTrafficRecomputeService(
                         properties,
@@ -181,7 +198,9 @@ class FootTrafficRecomputeServiceTest {
                         zoneRepo,
                         footTrafficService,
                         versions,
-                        h3);
+                        soap,
+                        h3,
+                        demoFallback);
 
         svc.recomputeAll(null, null);
 

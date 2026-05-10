@@ -1,5 +1,6 @@
 package com.example.backend.foottraffic.entities;
 
+import com.ecomap.foottraffic.simulation.FootTrafficZoneParamsSnapshot;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -62,4 +63,16 @@ public class FootTrafficZoneParams {
 
     @Column(name = "updated_at", nullable = false)
     private Timestamp updatedAt;
+
+    public FootTrafficZoneParamsSnapshot toSnapshot() {
+        return new FootTrafficZoneParamsSnapshot(
+                archetype,
+                baseDailyMin,
+                baseDailyMax,
+                poiDensityCap,
+                popDensityCap,
+                incomeWeight,
+                hourlyCurveWd,
+                noiseSigma);
+    }
 }

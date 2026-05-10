@@ -394,7 +394,7 @@ function AnalyticsPanel() {
         <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" }}>
           <div style={{ fontSize: "11px", color: "#334155", lineHeight: 1.6 }}>
             <div><strong>Population density</strong>: {zone.populationDensity == null ? "—" : Math.round(zone.populationDensity).toLocaleString("fr-FR")}</div>
-            <div><strong>Estimated foot traffic</strong>: {zone.estimatedFootTraffic == null ? "—" : zone.estimatedFootTraffic.toLocaleString("fr-FR")}</div>
+            <div><strong>Est. daily pedestrians (sim.)</strong>: {zone.estimatedDailyPedestrians == null ? "—" : zone.estimatedDailyPedestrians.toLocaleString("fr-FR")}</div>
           </div>
           <div style={{ marginTop: "10px" }}>
             <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>

@@ -6,6 +6,7 @@ import com.example.backend.foottraffic.services.FootTrafficRecomputeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -13,8 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@Profile("dev")
+@Profile("!test")
 @Order(Ordered.HIGHEST_PRECEDENCE + 30)
+@ConditionalOnProperty(prefix = "app.foot-traffic.recompute", name = "run-on-boot", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class FootTrafficBootstrapRunner implements CommandLineRunner {
 
@@ -27,9 +29,12 @@ public class FootTrafficBootstrapRunner implements CommandLineRunner {
         if (!properties.isEnabled()) {
             return;
         }
-        if (cellProfileRepository.count() > 0) {
-            log.info("Foot-traffic bootstrap skipped: {} profile row(s) already present", cellProfileRepository.count());
-            return;
+        if (properties.getRecompute().isRunOnBootOnlyIfEmpty()) {
+            long existing = cellProfileRepository.count();
+            if (existing > 0) {
+                log.info("Foot-traffic bootstrap skipped: {} profile row(s) already present", existing);
+                return;
+            }
         }
         log.info("Foot-traffic bootstrap: running initial recompute for empty profile table");
         footTrafficRecomputeService.recomputeAll(0, null);

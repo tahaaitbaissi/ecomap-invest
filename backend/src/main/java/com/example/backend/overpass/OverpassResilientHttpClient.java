@@ -1,5 +1,6 @@
 package com.example.backend.overpass;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import java.util.concurrent.CompletableFuture;
@@ -13,8 +14,9 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Single Overpass HTTP attempt wrapped in Resilience4j (Retry + TimeLimiter only).
- * No shared circuit breaker: one slow mirror must not block others (OverpassApiClient rotates URLs).
+ * Single Overpass HTTP attempt wrapped in Resilience4j (circuit breaker + retry + time limiter).
+ * {@link OverpassApiClient} rotates URLs across mirrors; an open circuit fails fast for that URL
+ * attempt so the outer loop can switch mirrors.
  */
 @Component
 public class OverpassResilientHttpClient {
@@ -30,6 +32,7 @@ public class OverpassResilientHttpClient {
         this.overpassExecutor = overpassExecutor;
     }
 
+    @CircuitBreaker(name = "overpassApi", fallbackMethod = "postForBodyFallback")
     @Retry(name = "overpassApi")
     @TimeLimiter(name = "overpassApi")
     public CompletionStage<String> postForBody(String url, HttpEntity<?> request) {
@@ -45,6 +48,14 @@ public class OverpassResilientHttpClient {
                 throw new IllegalStateException("Overpass request failed: " + ex.getMessage(), ex);
             }
         }, overpassExecutor);
+    }
+
+    @SuppressWarnings("unused")
+    private CompletionStage<String> postForBodyFallback(String url, HttpEntity<?> request, Throwable t) {
+        CompletableFuture<String> f = new CompletableFuture<>();
+        f.completeExceptionally(
+                t != null ? t : new IllegalStateException("Overpass circuit open or degraded"));
+        return f;
     }
 }
 

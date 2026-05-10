@@ -1,23 +1,23 @@
 package com.example.backend.services;
 
-import com.example.backend.events.ProfileEventPublisher;
+import com.example.backend.events.ProfileJmsPublisher;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Profile lifecycle hooks. Publish domain events from here inside a transaction so
- * {@link org.springframework.transaction.event.TransactionalEventListener} subscribers run after commit.
+ * Profile lifecycle hooks. Delegates to {@link ProfileJmsPublisher} while a DB transaction is active;
+ * JMS is sent only after commit.
  */
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
 
-    private final ProfileEventPublisher profileEventPublisher;
+    private final ProfileJmsPublisher profileJmsPublisher;
 
     @Transactional
     public void notifyProfileGeneratedAfterPersist(UUID profileId, UUID userId, String query) {
-        profileEventPublisher.publishProfileGenerated(profileId, userId, query);
+        profileJmsPublisher.publishProfileGenerated(profileId, userId, query);
     }
 }

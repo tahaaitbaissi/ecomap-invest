@@ -1,0 +1,6 @@
+com/ecomap/soap/ft/service/ZoneParamsRegistry.class
+com/ecomap/soap/ft/entities/FootTrafficZoneParamsEntity.class
+com/ecomap/soap/ft/SoapFootTrafficApplication.class
+com/ecomap/soap/ft/ws/FootTrafficSimulationEndpoint.class
+com/ecomap/soap/ft/config/WebServiceConfig.class
+com/ecomap/soap/ft/repo/FootTrafficZoneParamsRepository.class

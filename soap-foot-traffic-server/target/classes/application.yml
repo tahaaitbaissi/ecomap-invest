@@ -1,0 +1,22 @@
+server:
+  port: ${SOAP_FOOT_TRAFFIC_PORT:8092}
+
+spring:
+  application:
+    name: soap-foot-traffic
+  datasource:
+    url: ${SOAP_FT_DATASOURCE_URL:jdbc:postgresql://postgres:5432/ecomap}
+    username: ${SOAP_FT_DATASOURCE_USERNAME:${SPRING_DATASOURCE_USERNAME:ecomap}}
+    password: ${SOAP_FT_DATASOURCE_PASSWORD:${SPRING_DATASOURCE_PASSWORD:secret}}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+logging:
+  level:
+    org.springframework.ws.server.MessageTracing: DEBUG

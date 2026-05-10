@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.UUID;
 import com.example.backend.services.ProfileScoreScaleService;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,7 @@ class ScoringCacheInvalidationListenerTest {
         when(cursor.next()).thenReturn("score:" + profileId + ":99");
         when(stringRedisTemplate.delete(anyList())).thenReturn(1L);
 
-        listener.onProfileGenerated(new ProfileGeneratedEvent(this, profileId, UUID.randomUUID(), "q", Instant.now()));
+        listener.invalidateCachesForProfile(profileId);
 
         verify(profileScoreScaleService).invalidate(profileId);
         verify(stringRedisTemplate).scan(any(ScanOptions.class));

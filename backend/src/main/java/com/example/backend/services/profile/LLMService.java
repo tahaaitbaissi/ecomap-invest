@@ -10,11 +10,16 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import com.example.backend.config.ProfileLlmExecutorConfiguration;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,29 +43,51 @@ public class LLMService {
     private final ChatLanguageModel profileChatModel;
     private final ObjectMapper objectMapper;
     private final ProfileTagCatalog profileTagCatalog;
+    private final Executor profileLlmExecutor;
 
     public LLMService(
             @Qualifier("profileChatModel") ChatLanguageModel profileChatModel,
             ObjectMapper objectMapper,
-            ProfileTagCatalog profileTagCatalog) {
+            ProfileTagCatalog profileTagCatalog,
+            @Qualifier(ProfileLlmExecutorConfiguration.PROFILE_LLM_EXECUTOR) Executor profileLlmExecutor) {
         this.profileChatModel = profileChatModel;
         this.objectMapper = objectMapper;
         this.profileTagCatalog = profileTagCatalog;
+        this.profileLlmExecutor = profileLlmExecutor;
     }
 
-    @Retry(name = "profileLlm")
-    @CircuitBreaker(name = "profileLlm", fallbackMethod = "generateProfileConfigFallback")
     public Optional<FallbackProfileProvider.ProfileConfig> generateProfileConfig(String userQuery) {
-        return Optional.of(parseStrictJsonProfile(userQuery));
+        try {
+            return generateProfileConfigAsync(userQuery).join();
+        } catch (CompletionException e) {
+            Throwable c = e.getCause();
+            if (c instanceof RuntimeException re) {
+                throw re;
+            }
+            if (c instanceof Error err) {
+                throw err;
+            }
+            throw e;
+        }
+    }
+
+    @Retry(name = "profileLlm", fallbackMethod = "generateProfileConfigAsyncFallback")
+    @CircuitBreaker(name = "profileLlm", fallbackMethod = "generateProfileConfigAsyncFallback")
+    @TimeLimiter(name = "profileLlm", fallbackMethod = "generateProfileConfigAsyncFallback")
+    public CompletableFuture<Optional<FallbackProfileProvider.ProfileConfig>> generateProfileConfigAsync(
+            String userQuery) {
+        return CompletableFuture.supplyAsync(
+                () -> Optional.of(parseStrictJsonProfile(userQuery)), profileLlmExecutor);
     }
 
     @SuppressWarnings("unused")
-    Optional<FallbackProfileProvider.ProfileConfig> generateProfileConfigFallback(String userQuery, Throwable t) {
+    private CompletableFuture<Optional<FallbackProfileProvider.ProfileConfig>> generateProfileConfigAsyncFallback(
+            String userQuery, Throwable t) {
         log.warn(
                 "Profile LLM unavailable (circuit or error) for query prefix [{}]: {}",
                 userQuery == null || userQuery.length() < 64 ? userQuery : userQuery.substring(0, 64) + "…",
                 t != null ? t.getClass().getSimpleName() + ": " + t.getMessage() : "null");
-        return Optional.empty();
+        return CompletableFuture.completedFuture(Optional.empty());
     }
 
     private FallbackProfileProvider.ProfileConfig parseStrictJsonProfile(String userQuery) {

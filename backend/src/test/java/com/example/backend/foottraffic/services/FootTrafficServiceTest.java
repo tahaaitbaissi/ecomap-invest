@@ -79,6 +79,35 @@ class FootTrafficServiceTest {
     }
 
     @Test
+    void getTrafficIntensityNorm_uses_baseline_times_peak_share_before_rounding() {
+        var properties = props();
+        properties.setTrafficCap(200);
+        var cellRepo = Mockito.mock(FootTrafficCellProfileRepository.class);
+        var zoneRepo = Mockito.mock(FootTrafficZoneParamsRepository.class);
+        var versions = Mockito.mock(ScoreCacheVersionService.class);
+
+        var prof = new FootTrafficCellProfile();
+        prof.setH3Index("h");
+        prof.setArchetype("A");
+        prof.setBaselineDaily(120);
+        prof.setPeakHourly(1);
+        when(cellRepo.findById("h")).thenReturn(Optional.of(prof));
+
+        var params = new FootTrafficZoneParams();
+        params.setArchetype("A");
+        Double[] curve = new Double[24];
+        for (int i = 0; i < 24; i++) curve[i] = 1d;
+        curve[10] = 3d;
+        params.setHourlyCurveWd(curve);
+        when(zoneRepo.findById("A")).thenReturn(Optional.of(params));
+
+        var svc = new FootTrafficService(properties, cellRepo, zoneRepo, versions, null);
+        double expectedPeak = 120.0 * (3.0 / 24.0);
+        double ratio = expectedPeak / 200.0;
+        assertThat(svc.getTrafficIntensityNorm("h").getAsDouble()).isEqualTo(Math.sqrt(ratio));
+    }
+
+    @Test
     void getPeakHourlyNorm_applies_cap_and_clamp() {
         var properties = props();
         var cellRepo = Mockito.mock(FootTrafficCellProfileRepository.class);

@@ -8,13 +8,17 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import com.example.backend.demographics.DeterministicDemographicsFallback;
 import com.example.backend.entities.Demographics;
 import com.example.backend.entities.DynamicProfile;
+import com.example.backend.foottraffic.services.FootTrafficService;
 import com.example.backend.repositories.DemographicsRepository;
+import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.repositories.PoiRepository;
 import com.example.backend.services.profile.DynamicProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.uber.h3core.H3Core;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -34,10 +38,27 @@ class AnalyticsServiceTest {
     private DemographicsRepository demographicsRepository;
     @Mock
     private DynamicProfileService dynamicProfileService;
+    @Mock
+    private H3Core h3;
+    @Mock
+    private H3HexagonRepository h3HexagonRepository;
+    @Mock
+    private FootTrafficService footTrafficService;
+
+    @Mock
+    private DeterministicDemographicsFallback demographicsFallback;
 
     @Test
     void rejectsWhenProfileNotOwned() {
-        AnalyticsService svc = new AnalyticsService(poiRepository, demographicsRepository, dynamicProfileService);
+        AnalyticsService svc =
+                new AnalyticsService(
+                        h3,
+                        h3HexagonRepository,
+                        poiRepository,
+                        demographicsRepository,
+                        dynamicProfileService,
+                        footTrafficService,
+                        demographicsFallback);
 
         UUID pid = UUID.randomUUID();
         when(dynamicProfileService.getOwnedActiveEntity("a@a.com", pid))
@@ -50,7 +71,15 @@ class AnalyticsServiceTest {
 
     @Test
     void computesEstimatedFootTraffic_andCounts() throws Exception {
-        AnalyticsService svc = new AnalyticsService(poiRepository, demographicsRepository, dynamicProfileService);
+        AnalyticsService svc =
+                new AnalyticsService(
+                        h3,
+                        h3HexagonRepository,
+                        poiRepository,
+                        demographicsRepository,
+                        dynamicProfileService,
+                        footTrafficService,
+                        demographicsFallback);
 
         UUID pid = UUID.randomUUID();
         DynamicProfile p = new DynamicProfile();
@@ -64,6 +93,10 @@ class AnalyticsServiceTest {
         p.setCompetitorsConfig(competitors);
         when(dynamicProfileService.getOwnedActiveEntity("a@a.com", pid)).thenReturn(p);
 
+        when(h3.stringToH3(any())).thenReturn(1L);
+        when(h3.getResolution(1L)).thenReturn(9);
+        when(h3HexagonRepository.existsById(any())).thenReturn(true);
+
         when(poiRepository.countByTypeTagWithinHex(eq("amenity=school"), any())).thenReturn(3L);
         when(poiRepository.countByTypeTagWithinHex(eq("amenity=cafe"), any())).thenReturn(2L);
 
@@ -71,13 +104,19 @@ class AnalyticsServiceTest {
         d.setH3Index("h");
         d.setPopulationDensity(10_000.0);
         when(demographicsRepository.findById(any())).thenReturn(Optional.of(d));
+        when(demographicsFallback.populationDensity(any(), any())).thenAnswer(
+                inv ->
+                        inv.<Optional<Demographics>>getArgument(0)
+                                .flatMap(x -> Optional.ofNullable(x.getPopulationDensity()))
+                                .orElse(0.0));
 
+        when(footTrafficService.getProfile(any())).thenReturn(Optional.empty());
         when(poiRepository.findTopPoisWithinHex(any(), anyInt())).thenReturn(List.of());
 
         var out = svc.getZoneStatistics("8928308280fffff", pid, "a@a.com");
         assertNotNull(out);
         // estimated = min(50000, round(P*0.4 + D*200)) = 10000*0.4 + 3*200 = 4000 + 600 = 4600
-        assertEquals(4600, out.estimatedFootTraffic());
+        assertEquals(4600, out.estimatedDailyPedestrians());
         assertEquals(3, out.driverCounts().get("amenity=school"));
         assertEquals(2, out.competitorCounts().get("amenity=cafe"));
     }

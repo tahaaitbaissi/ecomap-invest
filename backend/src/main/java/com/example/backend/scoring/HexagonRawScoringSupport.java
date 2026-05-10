@@ -6,6 +6,7 @@ import com.example.backend.repositories.DemographicsRepository;
 import com.example.backend.repositories.DynamicProfileRepository;
 import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.controllers.dto.TagWeightDto;
+import com.example.backend.demographics.DeterministicDemographicsFallback;
 import com.example.backend.foottraffic.config.FootTrafficProperties;
 import com.example.backend.foottraffic.services.FootTrafficService;
 import com.example.backend.repositories.PoiRepository;
@@ -38,6 +39,7 @@ public class HexagonRawScoringSupport {
     private final FootTrafficProperties footTrafficProperties;
     private final PoiRepository poiRepository;
     private final DemographicsRepository demographicsRepository;
+    private final DeterministicDemographicsFallback demographicsFallback;
     private final H3HexagonRepository h3HexagonRepository;
     private final GeometryFactory geometryFactory;
     private final DynamicProfileRepository dynamicProfileRepository;
@@ -73,7 +75,7 @@ public class HexagonRawScoringSupport {
         double pTerm = demographicsPTerm(h3Index, cfg);
         double driversSum = weightedWithin(cfg.driverTags(), h3Index);
         double competitorsSum = weightedWithin(cfg.competitorTags(), h3Index);
-        double trafficNorm = footTrafficService.getPeakHourlyNorm(h3Index).orElse(0.0);
+        double trafficNorm = footTrafficService.getTrafficIntensityNorm(h3Index).orElse(0.0);
         double trafficTerm = trafficNorm * footTrafficProperties.getTermWeight();
         double demandTerm =
                 trafficTerm > 0
@@ -170,11 +172,11 @@ public class HexagonRawScoringSupport {
             return 0.0;
         }
         Optional<Demographics> d = demographicsRepository.findById(h3Index);
-        if (d.isEmpty() || d.get().getPopulationDensity() == null) {
+        double density = demographicsFallback.populationDensity(d, h3Index);
+        if (density <= 0.0) {
             return 0.0;
         }
-        double pNorm =
-                Math.min(d.get().getPopulationDensity() / Math.max(1.0, demographicDensityCap), 1.0);
+        double pNorm = Math.min(density / Math.max(1.0, demographicDensityCap), 1.0);
         return pNorm * 0.3;
     }
 

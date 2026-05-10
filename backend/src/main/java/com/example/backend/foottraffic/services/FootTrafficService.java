@@ -62,9 +62,51 @@ public class FootTrafficService {
         if (peak.isEmpty()) {
             return OptionalDouble.empty();
         }
+        return OptionalDouble.of(normalizedTrafficRatio(peak.getAsDouble()));
+    }
+
+    /**
+     * Scoring/UI demand proxy: continuous {@code baselineDaily × (max weekday curve / 24)} before the
+     * integer {@link FootTrafficCellProfile#getPeakHourly()} rounding, so sparse cells keep gradient.
+     */
+    public OptionalDouble getTrafficIntensityNorm(String h3Index) {
+        if (!properties.isEnabled() || h3Index == null || h3Index.isBlank()) {
+            return OptionalDouble.empty();
+        }
+        Optional<FootTrafficCellProfile> prof = cellProfileRepository.findById(h3Index);
+        if (prof.isEmpty()) {
+            return OptionalDouble.empty();
+        }
+        Optional<FootTrafficZoneParams> zp = zoneParamsRepository.findById(prof.get().getArchetype());
+        if (zp.isEmpty()) {
+            return getPeakHourlyNorm(h3Index);
+        }
+        double maxWd = maxHourlyWd(zp.get().getHourlyCurveWd());
+        double expectedPeak = prof.get().getBaselineDaily() * (maxWd / 24.0);
+        return OptionalDouble.of(normalizedTrafficRatio(expectedPeak));
+    }
+
+    private double normalizedTrafficRatio(double peakEquivalent) {
         double cap = Math.max(1.0, properties.getTrafficCap());
-        return OptionalDouble.of(
-                Math.min(1.0, Math.max(0.0, peak.getAsDouble() / cap)));
+        double ratio = Math.min(1.0, Math.max(0.0, peakEquivalent / cap));
+        if (properties.isSqrtNormalization()) {
+            return Math.sqrt(ratio);
+        }
+        return ratio;
+    }
+
+    private static double maxHourlyWd(Double[] arr) {
+        if (arr == null || arr.length == 0) {
+            return 1.0;
+        }
+        double m = arr[0] != null ? arr[0] : 0.0;
+        for (int i = 1; i < arr.length; i++) {
+            double v = arr[i] != null ? arr[i] : 0.0;
+            if (v > m) {
+                m = v;
+            }
+        }
+        return m;
     }
 
     /** Hourly pedestrians for UI/explain; computed from stored profile + zone params (not Redis). */

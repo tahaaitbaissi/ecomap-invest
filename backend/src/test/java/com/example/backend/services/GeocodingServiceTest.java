@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.concurrent.ForkJoinPool;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +25,7 @@ class GeocodingServiceTest {
                 .baseUrl("http://127.0.0.1:" + server.getPort())
                 .defaultHeader("User-Agent", "test")
                 .build();
-        client = new NominatimSearchClient(c);
+        client = new NominatimSearchClient(c, ForkJoinPool.commonPool());
     }
 
     @AfterEach

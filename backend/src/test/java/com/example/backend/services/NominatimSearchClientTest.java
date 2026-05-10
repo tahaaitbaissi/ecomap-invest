@@ -11,6 +11,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.example.backend.controllers.dto.GeocodingSuggestionResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,7 @@ class NominatimSearchClientTest {
                 .baseUrl("https://nominatim.openstreetmap.org/search")
                 .defaultHeader("User-Agent", "EcoMapInvest/1.0-test");
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        client = new NominatimSearchClient(builder.build());
+        client = new NominatimSearchClient(builder.build(), ForkJoinPool.commonPool());
     }
 
     @AfterEach

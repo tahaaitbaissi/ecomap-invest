@@ -50,6 +50,19 @@ services:
       retries: 8
       start_period: 15s
 
+  # Apache ActiveMQ Artemis (JMS) — profile lifecycle → scoring cache invalidation
+  artemis:
+    image: apache/activemq-artemis:2.37.0
+    container_name: ecomap-artemis
+    restart: unless-stopped
+    environment:
+      ARTEMIS_USER: ecomap
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-ecomap-artemis-secret}
+    ports:
+      - "61616:61616"
+    networks:
+      - backend
+
   # Ollama (LLM local)
   ollama:
     image: ollama/ollama:latest
@@ -75,6 +88,8 @@ services:
         condition: service_started
       redis:
         condition: service_started
+      artemis:
+        condition: service_started
       ollama:
         condition: service_started
       rmi-scoring:
@@ -85,6 +100,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: secret
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      SPRING_ARTEMIS_BROKER_URL: tcp://artemis:61616
+      SPRING_ARTEMIS_USER: ecomap
+      SPRING_ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-ecomap-artemis-secret}
       OLLAMA_URL: http://ollama:11434
       JWT_SECRET: ${JWT_SECRET:-ChangeMeInProductionAtLeast32Chars123!}
       RMI_SCORING_HOST: rmi-scoring
@@ -94,11 +112,34 @@ services:
       # OSM Overpass import: exposes POST /api/v1/admin/batch/trigger and schedules nightly 02:00 import (Casablanca bbox).
       # Set to false if you only want the 5-row CSV seed and no Overpass traffic.
       APP_BATCH_ENABLED: ${APP_BATCH_ENABLED:-true}
+      APP_FOOT_TRAFFIC_SOAP_URL: http://soap-foot-traffic:8092/ws
     ports:
       - "8080:8080"
     networks:
       - backend
       - frontend
+
+  # SOAP foot-traffic simulation node (shared Postgres for zone params; run after backend Flyway)
+  soap-foot-traffic:
+    build:
+      context: .
+      dockerfile: soap-foot-traffic-server/Dockerfile
+    container_name: ecomap-soap-foot-traffic
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_started
+      backend:
+        condition: service_started
+    environment:
+      SOAP_FT_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecomap
+      SOAP_FT_DATASOURCE_USERNAME: ecomap
+      SOAP_FT_DATASOURCE_PASSWORD: secret
+      SOAP_FOOT_TRAFFIC_PORT: "8092"
+    ports:
+      - "8092:8092"
+    networks:
+      - backend
 
   # AI Orchestrator (distributed LLM workflow)
   ai-orchestrator:

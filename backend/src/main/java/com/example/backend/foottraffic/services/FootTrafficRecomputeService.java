@@ -1,15 +1,16 @@
 package com.example.backend.foottraffic.services;
 
+import com.ecomap.foottraffic.simulation.FootTrafficSimulationEngine;
+import com.ecomap.foottraffic.simulation.FootTrafficZoneParamsSnapshot;
+import com.ecomap.foottraffic.simulation.PoiFootTrafficTagAggregator;
+import com.ecomap.foottraffic.simulation.PoiTagCounts;
+import com.ecomap.ftsim.ws.xml.SimulateCellRequest;
+import com.ecomap.ftsim.ws.xml.TagCountRow;
+import com.example.backend.demographics.DeterministicDemographicsFallback;
 import com.example.backend.entities.Demographics;
 import com.example.backend.foottraffic.config.FootTrafficProperties;
 import com.example.backend.foottraffic.repositories.FootTrafficCellProfileRepository;
 import com.example.backend.foottraffic.repositories.FootTrafficZoneParamsRepository;
-import com.example.backend.foottraffic.simulation.FootTrafficBaselineCalculator;
-import com.example.backend.foottraffic.simulation.FootTrafficBaselineCalculator.BaselineResult;
-import com.example.backend.foottraffic.simulation.FootTrafficZoneClassifier;
-import com.example.backend.foottraffic.simulation.FootTrafficZoneClassifier.ArchetypeResult;
-import com.example.backend.foottraffic.simulation.PoiFootTrafficTagAggregator;
-import com.example.backend.foottraffic.simulation.PoiTagCounts;
 import com.example.backend.repositories.DemographicsRepository;
 import com.example.backend.repositories.H3HexagonRepository;
 import com.example.backend.repositories.PoiRepository;
@@ -41,7 +42,9 @@ public class FootTrafficRecomputeService {
     private final FootTrafficZoneParamsRepository zoneParamsRepository;
     private final FootTrafficService footTrafficService;
     private final ScoreCacheVersionService scoreCacheVersionService;
+    private final FootTrafficSoapSimulationClient soapSimulationClient;
     private final H3Core h3;
+    private final DeterministicDemographicsFallback demographicsFallback;
 
     public record RecomputeResult(int cellsProcessed, long durationMs, long trafficVersion) {}
 
@@ -90,61 +93,96 @@ public class FootTrafficRecomputeService {
     private void processOneCell(
             String h3Index, long trafficV, List<String> batchH3, List<Long> batchPeaks) {
         List<Object[]> rows = poiRepository.countTypeTagsGroupedWithinHex(h3Index);
-        PoiTagCounts counts = PoiFootTrafficTagAggregator.aggregate(rows);
-        double pop = 0;
-        double income = 0;
         Optional<Demographics> demo = demographicsRepository.findById(h3Index);
-        if (demo.isPresent()) {
-            if (demo.get().getPopulationDensity() != null) {
-                pop = demo.get().getPopulationDensity();
-            }
-            if (demo.get().getAvgIncome() != null) {
-                income = demo.get().getAvgIncome();
-            }
-        }
+        double pop = demographicsFallback.populationDensity(demo, h3Index);
+        double income = demographicsFallback.avgIncome(demo, h3Index);
 
-        ArchetypeResult arch = FootTrafficZoneClassifier.classify(counts, pop);
-        var params =
-                zoneParamsRepository
-                        .findById(arch.archetype())
-                        .orElseGet(
-                                () ->
-                                        zoneParamsRepository
-                                                .findById(FALLBACK_ARCHETYPE)
-                                                .orElseThrow());
-
-        BaselineResult baseline =
-                FootTrafficBaselineCalculator.calc(
-                        counts,
-                        params,
-                        pop,
-                        income,
-                        h3Index,
-                        properties.getJitterSalt());
-
-        int driverTotal = (int) Math.min(Integer.MAX_VALUE, counts.total());
-        int comp = (int) Math.min(Integer.MAX_VALUE, counts.competitorApprox());
-        int transit = (int) Math.min(Integer.MAX_VALUE, counts.transitPoiCount() + counts.railwayStationCount());
+        FootTrafficSimulationEngine.CellSimulationResult result = computeCellSimulation(h3Index, rows, pop, income);
 
         cellProfileRepository.upsert(
                 h3Index,
                 SCENARIO_DEFAULT,
-                arch.archetype(),
-                arch.confidence(),
-                baseline.baselineDaily(),
-                baseline.peakHourly(),
-                driverTotal,
-                comp,
-                transit,
+                result.archetype(),
+                result.archetypeConfidence(),
+                result.baselineDaily(),
+                result.peakHourly(),
+                result.driverPoiCount(),
+                result.competitorPoiCount(),
+                result.transitPoiCount(),
                 pop,
                 income,
-                baseline.noiseSeed());
+                result.noiseSeed());
 
         batchH3.add(h3Index);
-        batchPeaks.add((long) baseline.peakHourly());
+        batchPeaks.add((long) result.peakHourly());
         if (batchH3.size() >= 500) {
             flushPeakBatch(trafficV, batchH3, batchPeaks);
         }
+    }
+
+    private FootTrafficSimulationEngine.CellSimulationResult computeCellSimulation(
+            String h3Index, List<Object[]> rows, double pop, double income) {
+        if (soapSimulationClient.isReady()) {
+            try {
+                SimulateCellRequest rq = buildSoapRequest(h3Index, rows, pop, income);
+                FootTrafficSimulationEngine.CellSimulationResult remote =
+                        soapSimulationClient.simulateCellAsync(rq).join();
+                if (remote != null) {
+                    return remote;
+                }
+            } catch (Exception ex) {
+                log.debug("SOAP foot-traffic failed, local engine: {}", ex.getMessage());
+            }
+        }
+        return simulateLocal(h3Index, rows, pop, income);
+    }
+
+    private SimulateCellRequest buildSoapRequest(
+            String h3Index, List<Object[]> rows, double pop, double income) {
+        SimulateCellRequest rq = new SimulateCellRequest();
+        rq.setH3Index(h3Index);
+        rq.setScenarioId(SCENARIO_DEFAULT);
+        rq.setJitterSalt(properties.getJitterSalt());
+        rq.setPopulationDensity(pop);
+        rq.setAvgIncome(income);
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2) {
+                continue;
+            }
+            TagCountRow tr = new TagCountRow();
+            tr.setTypeTag(row[0] != null ? row[0].toString() : "");
+            tr.setCount(toLong(row[1]));
+            rq.getTagRow().add(tr);
+        }
+        return rq;
+    }
+
+    private static long toLong(Object o) {
+        if (o == null) {
+            return 0L;
+        }
+        if (o instanceof Number n) {
+            return n.longValue();
+        }
+        try {
+            return Long.parseLong(o.toString());
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    private FootTrafficSimulationEngine.CellSimulationResult simulateLocal(
+            String h3Index, List<Object[]> rows, double pop, double income) {
+        PoiTagCounts counts = PoiFootTrafficTagAggregator.aggregate(rows);
+        return FootTrafficSimulationEngine.simulate(
+                counts, pop, income, h3Index, properties.getJitterSalt(), this::resolveZoneSnapshot);
+    }
+
+    private FootTrafficZoneParamsSnapshot resolveZoneSnapshot(String archetype) {
+        return zoneParamsRepository
+                .findById(archetype)
+                .orElseGet(() -> zoneParamsRepository.findById(FALLBACK_ARCHETYPE).orElseThrow())
+                .toSnapshot();
     }
 
     private void flushPeakBatch(long trafficV, List<String> batchH3, List<Long> batchPeaks) {

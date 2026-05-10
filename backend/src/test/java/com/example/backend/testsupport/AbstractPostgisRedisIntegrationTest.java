@@ -3,15 +3,16 @@ package com.example.backend.testsupport;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.activemq.ArtemisContainer;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Brings up PostGIS + Redis for @SpringBootTest. Requires Docker.
+ * Brings up PostGIS + Redis + ActiveMQ Artemis for @SpringBootTest. Requires Docker.
  * <p>Tests that need this should also use {@code @Tag("integration")} so the default
  * {@code mvn test} skips them. Run locally with Docker: {@code ./mvnw -f ../pom.xml verify -Pwith-integration}
  * (or {@code -Dtest.excluded.groups=} on shells that allow an empty value). GitHub Actions CI uses
@@ -35,6 +36,12 @@ public abstract class AbstractPostgisRedisIntegrationTest {
             .withExposedPorts(6379)
             .waitingFor(Wait.forListeningPort());
 
+    @Container
+    static final ArtemisContainer ARTEMIS =
+            new ArtemisContainer(DockerImageName.parse("apache/activemq-artemis:2.37.0"))
+                    .withUser("ecomap")
+                    .withPassword("artemis-test-secret");
+
     @DynamicPropertySource
     static void dataSourceAndRedis(DynamicPropertyRegistry r) {
         r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -43,5 +50,9 @@ public abstract class AbstractPostgisRedisIntegrationTest {
         r.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         r.add("spring.data.redis.host", REDIS::getHost);
         r.add("spring.data.redis.port", () -> String.valueOf(REDIS.getMappedPort(6379)));
+        r.add("spring.artemis.mode", () -> "native");
+        r.add("spring.artemis.broker-url", ARTEMIS::getBrokerUrl);
+        r.add("spring.artemis.user", ARTEMIS::getUser);
+        r.add("spring.artemis.password", ARTEMIS::getPassword);
     }
 }

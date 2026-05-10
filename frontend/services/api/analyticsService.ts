@@ -10,7 +10,7 @@ export interface ZoneStatsResponse {
   h3Index: string;
   profileId: string;
   populationDensity: number | null;
-  estimatedFootTraffic: number | null;
+  estimatedDailyPedestrians: number | null;
   driverCounts: Record<string, number>;
   competitorCounts: Record<string, number>;
   topPois: TopPoiDto[];

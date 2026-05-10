@@ -3,16 +3,22 @@ FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
 WORKDIR /build
 
 COPY pom.xml .
+# Parent aggregator lists foot-traffic modules; copy minimal POMs so Maven can parse the reactor.
+COPY build-support/docker-stub-poms/foot-traffic-simulation-core/pom.xml foot-traffic-simulation-core/pom.xml
+COPY build-support/docker-stub-poms/foot-traffic-simulation-contract/pom.xml foot-traffic-simulation-contract/pom.xml
+COPY build-support/docker-stub-poms/soap-foot-traffic-server/pom.xml soap-foot-traffic-server/pom.xml
 COPY rmi-scoring-api/pom.xml rmi-scoring-api/
 COPY rmi-scoring-server/pom.xml rmi-scoring-server/
 # Parent pom lists backend as a module; Maven requires the directory to exist even when building only RMI.
 COPY backend/pom.xml backend/
 # Parent pom also lists ai-orchestrator; directory must exist for Maven reactor.
 COPY ai-orchestrator/pom.xml ai-orchestrator/
+COPY selenium-e2e/pom.xml selenium-e2e/
 
 COPY rmi-scoring-api/src rmi-scoring-api/src
 COPY rmi-scoring-server/src rmi-scoring-server/src
 COPY ai-orchestrator/src ai-orchestrator/src
+COPY selenium-e2e/src selenium-e2e/src
 
 # Retries: Docker bridge DNS often returns EAI_AGAIN for repo.maven.apache.org ("Unknown host ... Try again").
 # Optional: docker compose -f docker-compose.yml -f docker-compose.build-host-network.yml up -d --build
