@@ -8,6 +8,8 @@ import java.util.Random;
  * Deterministic synthetic population density and income when no demographics row exists
  * (docker demo / Morocco grid). Matches the original {@code DemographicsSeeder} RNG so seeded DB
  * rows and runtime fallback stay identical for the same H3 index and salt.
+ *
+ * <p>The RNG is intentionally deterministic and non-cryptographic (visualization / demo data only).
  */
 public final class DemographicsSynth {
 
@@ -38,8 +40,12 @@ public final class DemographicsSynth {
         return new DensityIncome(population, income);
     }
 
+    /**
+     * Seeded {@link Random} for reproducible synthetic values — not used for secrets or crypto.
+     */
+    @SuppressWarnings("java:S2245")
     static Random stableRnd(int hIndexHashCode, long salt) {
-        return new Random(mix64(hIndexHashCode, salt));
+        return new Random(mix64(hIndexHashCode, salt)); // NOSONAR — deterministic demo synthesis
     }
 
     private static long mix64(int h, long s) {

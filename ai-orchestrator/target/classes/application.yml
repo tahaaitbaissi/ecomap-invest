@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: ecomap-ai-orchestrator
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+langchain4j:
+  ollama:
+    chat-model:
+      base-url: ${OLLAMA_URL:http://localhost:11434}
+      model-name: ${OLLAMA_MODEL:llama3}
+
+app:
+  ai:
+    sse-timeout-ms: ${APP_AI_SSE_MS:180000}
+    llm:
+      temperature: ${APP_AI_LLM_TEMP:0.25}
+      timeout: ${APP_AI_LLM_TIMEOUT:PT180S}
+    memory:
+      ttl-seconds: ${APP_AI_MEMORY_TTL_SECONDS:3600}
+      max-turns: ${APP_AI_MEMORY_MAX_TURNS:12}
+
+server:
+  port: ${PORT:8081}
+

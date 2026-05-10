@@ -1,7 +1,9 @@
 package com.example.backend.controllers.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -64,5 +66,67 @@ public record HexExplanationContextDto(
             double[] hourlyWeekday,
             double[] hourlySaturday,
             double[] hourlySunday,
-            double seasonalScaler) {}
+            double seasonalScaler) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            FootTrafficSnapshot that = (FootTrafficSnapshot) o;
+            return baselineDailyPedestrians == that.baselineDailyPedestrians
+                    && peakHourlyPedestrians == that.peakHourlyPedestrians
+                    && peakHour == that.peakHour
+                    && Double.compare(trafficTermAverage, that.trafficTermAverage) == 0
+                    && Double.compare(seasonalScaler, that.seasonalScaler) == 0
+                    && Objects.equals(archetype, that.archetype)
+                    && Objects.equals(dayType, that.dayType)
+                    && Arrays.equals(hourlyWeekday, that.hourlyWeekday)
+                    && Arrays.equals(hourlySaturday, that.hourlySaturday)
+                    && Arrays.equals(hourlySunday, that.hourlySunday);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(
+                    archetype,
+                    baselineDailyPedestrians,
+                    peakHourlyPedestrians,
+                    peakHour,
+                    trafficTermAverage,
+                    dayType,
+                    Arrays.hashCode(hourlyWeekday),
+                    Arrays.hashCode(hourlySaturday),
+                    Arrays.hashCode(hourlySunday),
+                    seasonalScaler);
+        }
+
+        @Override
+        public String toString() {
+            return "FootTrafficSnapshot[archetype="
+                    + archetype
+                    + ", baselineDailyPedestrians="
+                    + baselineDailyPedestrians
+                    + ", peakHourlyPedestrians="
+                    + peakHourlyPedestrians
+                    + ", peakHour="
+                    + peakHour
+                    + ", trafficTermAverage="
+                    + trafficTermAverage
+                    + ", dayType="
+                    + dayType
+                    + ", hourlyWeekday="
+                    + Arrays.toString(hourlyWeekday)
+                    + ", hourlySaturday="
+                    + Arrays.toString(hourlySaturday)
+                    + ", hourlySunday="
+                    + Arrays.toString(hourlySunday)
+                    + ", seasonalScaler="
+                    + seasonalScaler
+                    + "]";
+        }
+    }
 }
