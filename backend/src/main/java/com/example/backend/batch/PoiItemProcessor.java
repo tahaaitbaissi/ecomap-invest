@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @StepScope
+@SuppressWarnings("java:S2245") // synthetic demo POI fields only — not cryptographic
 public class PoiItemProcessor implements ItemProcessor<OsmElement, Poi> {
 
     private final PoiRepository poiRepository;
@@ -54,6 +55,7 @@ public class PoiItemProcessor implements ItemProcessor<OsmElement, Poi> {
         return poi;
     }
 
+    /** Demo seeding: random price tier — uses {@link ThreadLocalRandom}, not {@link java.security.SecureRandom}. */
     private static int simulatePriceLevel(double lat, double lon) {
         // Base 1-4
         int base = ThreadLocalRandom.current().nextInt(1, 5);
@@ -65,6 +67,7 @@ public class PoiItemProcessor implements ItemProcessor<OsmElement, Poi> {
         return Math.min(Math.max(biased, 1), 4);
     }
 
+    /** Demo seeding: random rating — uses {@link ThreadLocalRandom}, not {@link java.security.SecureRandom}. */
     private static float simulateRating() {
         double raw = ThreadLocalRandom.current().nextDouble(3.0, 5.0);
         double rounded = BigDecimal.valueOf(raw).setScale(1, RoundingMode.HALF_UP).doubleValue();

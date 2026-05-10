@@ -35,8 +35,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class LLMService {
 
-    private static final Pattern JSON_FENCE =
-            Pattern.compile("```(?:json)?\\s*([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);
     /** OSM-style {@code key=value} (lowercase key part, flexible value). */
     private static final Pattern TAG_FORM = Pattern.compile("^[a-z0-9_]+=[^\\s]+");
 
@@ -153,17 +151,36 @@ public class LLMService {
     }
 
     private static String extractTopLevelJsonObject(String raw) {
-        String t = raw.trim();
-        var m = JSON_FENCE.matcher(t);
-        if (m.find()) {
-            t = m.group(1).trim();
-        }
+        String t = stripOptionalMarkdownJsonFence(raw.trim());
         int start = t.indexOf('{');
         int end = t.lastIndexOf('}');
         if (start < 0 || end <= start) {
             throw new IllegalArgumentException("no JSON object in model output");
         }
         return t.substring(start, end + 1);
+    }
+
+    /**
+     * If the model wraps JSON in a markdown fence ({@code ```} … {@code ```}), returns the inner
+     * body in linear time. Avoids regex backtracking (Sonar java:S5852 / ReDoS).
+     */
+    private static String stripOptionalMarkdownJsonFence(String t) {
+        int open = t.indexOf("```");
+        if (open < 0) {
+            return t;
+        }
+        int i = open + 3;
+        if (t.regionMatches(true, i, "json", 0, 4)) {
+            i += 4;
+        }
+        while (i < t.length() && Character.isWhitespace(t.charAt(i))) {
+            i++;
+        }
+        int close = t.indexOf("```", i);
+        if (close < 0) {
+            return t;
+        }
+        return t.substring(i, close).trim();
     }
 
     private static List<TagWeightDto> readTagArray(JsonNode arrayNode, String fieldName) {
